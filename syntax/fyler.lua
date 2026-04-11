@@ -3,7 +3,7 @@ vim.cmd([[
     finish
   endif
 
-  syn match FylerReferenceId /\/\d* / conceal
+  syn match FylerReferenceId / \/\d* / conceal
 
   let b:current_syntax = "Fyler"
 ]])

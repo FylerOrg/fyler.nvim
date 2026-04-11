@@ -318,11 +318,11 @@ M.files = Component.new_async(function(node, onupdate)
     local icon, hl = icon_and_hl(item)
     local icon_highlight = (item.type == "directory") and "FylerFSDirectoryIcon" or hl
     local name_highlight = (item.type == "directory") and "FylerFSDirectoryName" or nil
-    icon = icon and (icon .. "  ") or ""
+    icon = icon and (icon .. " ") or ""
 
     local indentation_text = Text(string.rep(" ", 2 * depth))
     local icon_text = Text(icon, { highlight = icon_highlight })
-    local ref_id_text = item.ref_id and Text(string.format("/%05d ", item.ref_id)) or Text("")
+    local ref_id_text = item.ref_id and Text(string.format(" /%05d ", item.ref_id)) or Text("")
     local name_text = Text(item.name, { highlight = name_highlight })
     table.insert(files_column, Row({ indentation_text, icon_text, ref_id_text, name_text }))
   end
