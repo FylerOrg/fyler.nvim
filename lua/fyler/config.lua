@@ -47,6 +47,7 @@ local DEPRECATION_RULES = {
 ---@field winpick FylerConfigWinpick
 
 ---@alias FylerConfigFinderMapping
+---| ""
 ---| "CloseView"
 ---| "GotoCwd"
 ---| "GotoNode"
@@ -80,41 +81,41 @@ local DEPRECATION_RULES = {
 ---@field win_opts table<string, any>|nil
 
 ---@class FylerConfigWin
----@field border FylerConfigBorder|string[]
----@field bottom integer|string
----@field buf_opts table<string, any>
----@field footer string
----@field footer_pos string
----@field height integer|string
----@field kind WinKind
----@field kinds table<WinKind|string, FylerConfigWinKindOptions>
----@field left integer|string
----@field right integer|string
----@field title_pos string
----@field top integer|string
----@field width integer|string
----@field win_opts table<string, any>
+---@field border FylerConfigBorder|string[]|nil
+---@field bottom integer|string|nil
+---@field buf_opts table<string, any>|nil
+---@field footer string|nil
+---@field footer_pos string|nil
+---@field height integer|string|nil
+---@field kind WinKind|nil
+---@field kinds table<WinKind|string, FylerConfigWinKindOptions>|nil
+---@field left integer|string|nil
+---@field right integer|string|nil
+---@field title_pos string|nil
+---@field top integer|string|nil
+---@field width integer|string|nil
+---@field win_opts table<string, any>|nil
 
 ---@class FylerConfigViewsFinder
----@field close_on_select boolean
----@field confirm_simple boolean
----@field default_explorer boolean
----@field delete_to_trash boolean
----@field git_status FylerConfigGitStatus
----@field icon table<string, string|nil>
----@field indentscope FylerConfigIndentScope
----@field mappings table<string, FylerConfigFinderMapping|function>
----@field mappings_opts vim.keymap.set.Opts
----@field follow_current_file boolean
----@field win FylerConfigWin
+---@field close_on_select boolean|nil
+---@field confirm_simple boolean|nil
+---@field default_explorer boolean|nil
+---@field delete_to_trash boolean|nil
+---@field git_status FylerConfigGitStatus|nil
+---@field icon table<string, string|nil>|nil
+---@field indentscope FylerConfigIndentScope|nil
+---@field mappings table<string, FylerConfigFinderMapping|function>|nil
+---@field mappings_opts vim.keymap.set.Opts|nil
+---@field follow_current_file boolean|nil
+---@field win FylerConfigWin|nil
 
 ---@class FylerConfigViews
----@field finder FylerConfigViewsFinder
+---@field finder FylerConfigViewsFinder|nil
 
 ---@class FylerConfig
----@field hooks table<string, any>
----@field integrations FylerConfigIntegrations
----@field views FylerConfigViews
+---@field hooks table<string, any>|nil
+---@field integrations FylerConfigIntegrations|nil
+---@field views FylerConfigViews|nil
 
 ---@class FylerSetupIntegrations
 ---@field icon FylerConfigIntegrationsIcon|nil
