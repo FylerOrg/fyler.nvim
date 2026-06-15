@@ -441,9 +441,9 @@ H.state_update = function(inst, args)
 
   local handle_scan = function(node)
     inst.state.scheme.fs_scan_dir(target_path, function(err, entries)
-      if not entries then
+      if not entries or err then
         if args.callback then vim.schedule(args.callback) end
-        vim.schedule_wrap(vim.notify)(err, vim.log.levels.ERROR, { title = 'Fyler.nvim' })
+        if err then vim.schedule_wrap(vim.notify)(err, vim.log.levels.ERROR, { title = 'Fyler.nvim' }) end
         return
       end
 
@@ -1060,7 +1060,7 @@ function Finder:open()
     end, 'Ensure cursor boundary')
   end
 
-  vim.cmd.tcd(self.opts.root_path)
+  pcall(vim.cmd, 'tcd ' .. vim.fn.fnameescape(self.opts.root_path))
   local target_path = vim.fn.bufname('#')
   if #target_path > 0 then
     self:follow({ target_path = target_path })
@@ -1214,7 +1214,7 @@ function Finder:visit(args)
   local old_buf_name = H.buffer_name(self)
   self.state.pseudo_root_path = args.path
   H.state_toggle_expanded(self, args.path, true)
-  vim.cmd.tcd(args.path)
+  pcall(vim.cmd, 'tcd ' .. vim.fn.fnameescape(args.path))
   vim.api.nvim_buf_set_name(self.buf_id, H.buffer_name(self))
   local old_buf_id = vim.fn.bufnr('^' .. old_buf_name .. '$')
   if util.buf_valid(old_buf_id) then vim.api.nvim_buf_delete(old_buf_id, { force = true }) end
