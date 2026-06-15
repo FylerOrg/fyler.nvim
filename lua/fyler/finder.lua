@@ -1009,6 +1009,8 @@ function Finder:open()
   end
 
   util.set_win_option(self.win_id, 'cursorline', true)
+  util.set_win_option(self.win_id, 'number', false)
+  util.set_win_option(self.win_id, 'relativenumber', false)
 
   for name, value in pairs(self.opts.buf_opts or {}) do
     util.set_buf_option(self.buf_id, name, value)
@@ -1020,8 +1022,6 @@ function Finder:open()
 
   util.set_win_option(self.win_id, 'concealcursor', 'nvic')
   util.set_win_option(self.win_id, 'conceallevel', 3)
-  util.set_win_option(self.win_id, 'number', false)
-  util.set_win_option(self.win_id, 'relativenumber', false)
   util.set_win_option(self.win_id, 'signcolumn', 'yes')
   util.set_win_option(self.win_id, 'winfixheight', true)
   util.set_win_option(self.win_id, 'winfixwidth', true)

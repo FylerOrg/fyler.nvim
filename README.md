@@ -80,9 +80,7 @@ fyler.setup({
       -- - string with '%' for relative (e.g. '70%')
       -- - number for absolute
       height = '80%',
-      mappings = {
-        n = { ['<CR>'] = { action = 'select', args = { close = true } } },
-      },
+      mappings = { n = { ['<CR>'] = { action = 'select', args = { close = true } } } },
       width = '60%',
       -- Horizontal alignment: 'start' | 'center' | 'end'
       col = 'center',
@@ -90,42 +88,16 @@ fyler.setup({
       row = 'center',
     },
     replace = {
-      mappings = {
-        n = { ['<CR>'] = { action = 'select', args = { close = true } } },
-      },
+      mappings = { n = { ['<CR>'] = { action = 'select', args = { close = true } } } },
     },
-    split_above = {
-      height = '50%',
-      win_opts = { winfixheight = true },
-    },
-    split_above_all = {
-      height = '50%',
-      win_opts = { winfixheight = true },
-    },
-    split_below = {
-      height = '50%',
-      win_opts = { winfixheight = true },
-    },
-    split_below_all = {
-      height = '50%',
-      win_opts = { winfixheight = true },
-    },
-    split_left = {
-      width = '25%',
-      win_opts = { winfixwidth = true },
-    },
-    split_left_most = {
-      width = '25%',
-      win_opts = { winfixwidth = true },
-    },
-    split_right = {
-      width = '25%',
-      win_opts = { winfixwidth = true },
-    },
-    split_right_most = {
-      width = '25%',
-      win_opts = { winfixwidth = true },
-    },
+    split_above = { height = '50%' },
+    split_above_all = { height = '50%' },
+    split_below = { height = '50%' },
+    split_below_all = { height = '50%' },
+    split_left = { width = '25%' },
+    split_left_most = { width = '25%' },
+    split_right = { width = '25%' },
+    split_right_most = { width = '25%' },
   },
   mappings = {
     n = {
