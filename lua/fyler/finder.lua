@@ -998,10 +998,6 @@ function Finder:open()
     vim.api.nvim_buf_set_name(self.buf_id, buf_name)
   end
 
-  util.set_buf_option(self.buf_id, 'buftype', 'acwrite')
-  util.set_buf_option(self.buf_id, 'filetype', 'fyler_finder')
-  util.set_buf_option(self.buf_id, 'syntax', 'fyler_finder')
-
   if win_config then
     self.win_id = vim.api.nvim_open_win(self.buf_id, true, win_config)
   else
@@ -1020,6 +1016,12 @@ function Finder:open()
   for name, value in pairs(self.opts.win_opts or {}) do
     util.set_win_option(self.win_id, name, value)
   end
+
+  util.set_buf_option(self.buf_id, 'buftype', 'acwrite')
+  util.set_buf_option(self.buf_id, 'expandtab', true)
+  util.set_buf_option(self.buf_id, 'filetype', 'fyler_finder')
+  util.set_buf_option(self.buf_id, 'shiftwidth', 2)
+  util.set_buf_option(self.buf_id, 'syntax', 'fyler_finder')
 
   util.set_win_option(self.win_id, 'concealcursor', 'nvic')
   util.set_win_option(self.win_id, 'conceallevel', 3)
