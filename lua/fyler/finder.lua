@@ -515,6 +515,7 @@ function Finder:close()
   self.win_id = nil
   self._refresh_count = nil
   if #vim.fn.win_findbuf(self.buf_id) == 0 then pcall(vim.api.nvim_buf_delete, self.buf_id, { force = true }) end
+  vim.cmd.tcd({ args = { vim.fn.fnameescape(vim.fn.getcwd(-1, -1)) }, mods = { silent = true } })
 end
 
 ---@param args { target_path: string|nil }|nil
@@ -1060,7 +1061,7 @@ function Finder:open()
     end, 'Ensure cursor boundary')
   end
 
-  pcall(vim.cmd, 'tcd ' .. vim.fn.fnameescape(self.opts.root_path))
+  vim.cmd.tcd({ args = { vim.fn.fnameescape(self.opts.root_path) }, mods = { silent = true } })
   local target_path = vim.fn.bufname('#')
   if #target_path > 0 then
     self:follow({ target_path = target_path })
@@ -1214,7 +1215,7 @@ function Finder:visit(args)
   local old_buf_name = H.buffer_name(self)
   self.state.pseudo_root_path = args.path
   H.state_toggle_expanded(self, args.path, true)
-  pcall(vim.cmd, 'tcd ' .. vim.fn.fnameescape(args.path))
+  vim.cmd.tcd({ args = { vim.fn.fnameescape(args.path) }, mods = { silent = true } })
   vim.api.nvim_buf_set_name(self.buf_id, H.buffer_name(self))
   local old_buf_id = vim.fn.bufnr('^' .. old_buf_name .. '$')
   if util.buf_valid(old_buf_id) then vim.api.nvim_buf_delete(old_buf_id, { force = true }) end
