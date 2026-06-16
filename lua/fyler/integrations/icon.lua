@@ -5,33 +5,32 @@ local H = {}
 
 ---@param fs_type string
 ---@param fs_path string
----@param state { expanded: boolean, is_empty: boolean }|nil
+---@param state { expanded: boolean }|nil
 ---@return string, string|nil
 H.mini_icons = function(fs_type, fs_path, state)
   local mini_icons = Fyler.import('mini.icons')
   assert(mini_icons.is_found, 'mini.icons not found')
-  if fs_type == 'directory' then
-    if state and state.expanded then return '', 'FylerDirectoryIcon' end
-    if state and state.is_empty then return '', 'FylerDirectoryIcon' end
-    return '', 'FylerDirectoryIcon'
-  end
+
   local st = { default = true, directory = true, extension = true, file = true, filetype = true, lsp = true, os = true }
   local category = st[fs_type] and fs_type or 'file'
-  return mini_icons.get(category, fs_path)
+  local icon, hl = mini_icons.get(category, fs_path)
+  if fs_type == 'directory' then
+    if state and state.expanded then return '󰝰', hl end
+  end
+  return icon, hl
 end
 
 ---@param fs_type string
 ---@param fs_path string
----@param state { expanded: boolean, is_empty: boolean }|nil
+---@param state { expanded: boolean }|nil
 ---@return string
 ---@return string
 H.nvim_web_devicons = function(fs_type, fs_path, state)
   local nvim_web_devicons = Fyler.import('nvim-web-devicons')
   assert(nvim_web_devicons.is_found, 'nvim-web-devicons not found')
   if fs_type == 'directory' then
-    if state and state.expanded then return '', 'FylerDirectoryIcon' end
-    if state and state.is_empty then return '', 'FylerDirectoryIcon' end
-    return '', 'FylerDirectoryIcon'
+    if state and state.expanded then return '󰝰', 'FylerDirectoryIcon' end
+    return '󰉋', 'FylerDirectoryIcon'
   end
   local icon, hl = nvim_web_devicons.get_icon(vim.fs.basename(fs_path))
   return icon or '', hl
@@ -39,13 +38,12 @@ end
 
 ---@param fs_type string
 ---@param fs_path string
----@param state { expanded: boolean, is_empty: boolean }|nil
+---@param state { expanded: boolean }|nil
 ---@return string
 H.vim_nerdfont = function(fs_type, fs_path, state)
   assert(vim.fn.exists('*nerdfont#find'), 'vim-nerdfont are not installed or not loaded')
   if fs_type == 'directory' then
     if state and state.expanded then return '' end
-    if state and state.is_empty then return '' end
     return ''
   end
   return vim.fn['nerdfont#find'](fs_path)
@@ -53,7 +51,7 @@ end
 
 ---@param fs_type string
 ---@param fs_path string
----@param state { expanded: boolean, is_empty: boolean }|nil
+---@param state { expanded: boolean }|nil
 ---@return string|nil
 ---@return string|nil
 M.get = function(fs_type, fs_path, state)

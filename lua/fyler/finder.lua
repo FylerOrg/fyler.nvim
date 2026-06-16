@@ -64,7 +64,6 @@ local util = Fyler.import('fyler.util')
 
 ---@class fyler.FinderFSMeta
 ---@field expanded boolean
----@field has_children boolean|nil
 
 ---@class fyler.FinderStateNode
 ---@field children table<string, fyler.FinderStateNode>
@@ -334,7 +333,6 @@ H.state_flatten = function(inst)
     if entry.type == 'directory' then
       local meta = inst.state.fs_meta[libpath.to_key(entry.full_path)]
       item.expanded = meta and meta.expanded or false
-      item.is_empty = meta and meta.has_children == false
     end
     table.insert(result, item)
   end)
@@ -354,7 +352,7 @@ end
 ---@private
 ---@return table, integer
 H.build_fs_entry_ui = function(item)
-  local state = item.type == 'directory' and { expanded = item.expanded, is_empty = item.is_empty } or nil
+  local state = item.type == 'directory' and { expanded = item.expanded } or nil
   local icon_char, icon_hl = icon.get(item.type, item.full_path, state)
   local indent = item.depth > 0 and string.rep('  ', item.depth) or ''
   local id_part = string.format('/%0' .. math.ceil(math.log10(next_id)) .. 'd ', item.id)
@@ -469,10 +467,6 @@ H.state_update = function(inst, args)
         local meta = inst.state.fs_meta[libpath.to_key(entry.full_path)]
         if meta and meta.expanded then expanded[#expanded + 1] = entry.name end
       end
-
-      local key = libpath.to_key(target_path)
-      local dir_meta = inst.state.fs_meta[key]
-      if dir_meta then dir_meta.has_children = #entries > 0 end
 
       if #expanded == 0 then
         if args.callback then vim.schedule(args.callback) end
