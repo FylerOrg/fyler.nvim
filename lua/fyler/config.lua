@@ -87,10 +87,10 @@ local default_config = {
       ['-'] = { action = 'visit', args = { parent = true } },
       ['.'] = { action = 'visit', args = { cursor = true } },
       ['<BS>'] = { action = 'shrink', args = { parent = true } },
-      ['<C-r>'] = { action = 'refresh' },
-      ['<C-s>'] = { action = 'select', args = { split = true } },
-      ['<C-t>'] = { action = 'select', args = { tabedit = true } },
-      ['<C-v>'] = { action = 'select', args = { vsplit = true } },
+      ['<C-R>'] = { action = 'refresh' },
+      ['<C-S>'] = { action = 'select', args = { split = true } },
+      ['<C-T>'] = { action = 'select', args = { tabedit = true } },
+      ['<C-V>'] = { action = 'select', args = { vsplit = true } },
       ['<CR>'] = { action = 'select' },
       ['='] = { action = 'visit' },
       ['g.'] = { action = 'toggle_ui', args = { 'hidden_items' } },
@@ -119,9 +119,35 @@ local default_config = {
 
 ---@class (partial) fyler.UserConfig : fyler.Config
 
+local function normalize_mappings(mappings)
+  local normalized_mappings = {}
+  for mode, mode_mappings in pairs(mappings) do
+    normalized_mappings[mode] = {}
+    for key, mapping in pairs(mode_mappings) do
+      normalized_mappings[mode][vim.fn.keytrans(vim.api.nvim_replace_termcodes(key, true, true, true))] = mapping
+    end
+  end
+  return normalized_mappings
+end
+
+-- HACK: May there is better way to normalize mappings
+function M.get_config(custom_config)
+  custom_config = custom_config or {}
+  custom_config.kind = custom_config.kind or M.DATA.kind
+  if custom_config.mappings then custom_config.mappings = normalize_mappings(custom_config.mappings) end
+  return vim.tbl_deep_extend('force', M.DATA, M.DATA.kind_presets[custom_config.kind], custom_config)
+end
+
 ---@param user_config fyler.UserConfig|nil
 M.setup = function(user_config)
   user_config = user_config or {}
+
+  if user_config.mappings then user_config.mappings = normalize_mappings(user_config.mappings) end
+  if user_config.kind_presets then
+    for _, preset in pairs(user_config.kind_presets) do
+      if preset.mappings then preset.mappings = normalize_mappings(preset.mappings) end
+    end
+  end
 
   M.DATA = vim.tbl_deep_extend('force', default_config, user_config)
 

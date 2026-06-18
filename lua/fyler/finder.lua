@@ -310,9 +310,7 @@ H.normalize_opts = function(opts)
   opts = opts or {}
   opts.root_path = libpath.to_normalize(opts.root_path or vim.fn.getcwd(-1, -1))
   opts.scheme = opts.scheme or 'file'
-  local kind = opts.kind or config.DATA.kind
-  local kind_config = config.DATA.kind_presets[kind]
-  return vim.tbl_deep_extend('force', config.DATA, kind_config, opts)
+  return config.get_config(opts)
 end
 
 ---@private
@@ -608,10 +606,7 @@ H.compute_fs_actions = function(inst, id_to_path, buf_lines)
           current_path = segment_path .. '/'
         end
       end
-      if is_dir then
-        print(libpath.do_join(parent_path, name))
-        table.insert(stack, { path = libpath.do_join(parent_path, name), depth = depth })
-      end
+      if is_dir then table.insert(stack, { path = libpath.do_join(parent_path, name), depth = depth }) end
     end
   end)
 
@@ -1038,13 +1033,17 @@ function Finder:open()
 
   for mode, keys in pairs(self.opts.mappings or {}) do
     for key, mapping in pairs(keys) do
+      mapping.opts = vim.tbl_deep_extend(
+        'force',
+        { noremap = true, nowait = true, silent = true },
+        mapping.opts or {},
+        { buffer = self.buf_id }
+      )
       if type(mapping.action) == 'function' then
-        vim.keymap.set(mode, key, function() mapping.action(self, mapping.args) end, { buffer = self.buf_id })
+        vim.keymap.set(mode, key, function() mapping.action(self, mapping.args) end, mapping.opts)
       elseif type(mapping.action) == 'string' then
         local action = self[mapping.action]
-        if action then
-          vim.keymap.set(mode, key, function() action(self, mapping.args) end, { buffer = self.buf_id })
-        end
+        if action then vim.keymap.set(mode, key, function() action(self, mapping.args) end, mapping.opts) end
       end
     end
   end
@@ -1071,7 +1070,7 @@ function Finder:open()
 
   vim.cmd.tcd({ args = { vim.fn.fnameescape(self.opts.root_path) }, mods = { silent = true } })
   local target_path = vim.fn.bufname('#')
-  if #target_path > 0 then
+  if #target_path > 0 and self.opts.follow_current_file then
     self:follow({ target_path = target_path })
   else
     self:refresh()
@@ -1115,16 +1114,18 @@ function Finder:select(args)
     H.state_toggle_expanded(self, node_data.full_path)
     self:refresh()
   else
+    local edit = not (args.split or args.vsplit or args.tabedit)
     local should_close = false
     if self.opts.kind == 'floating' then
       should_close = not args.tabedit
     elseif self.opts.kind == 'replace' then
-      should_close = not (args.split or args.vsplit or args.tabedit)
+      should_close = edit
     end
     if should_close then self:close() end
 
     local os_path = libpath.to_os(libpath.to_abs(node_data.link_target or node_data.full_path))
-    if not args.tabedit then M.window_goto_suitable(self, os_path) end
+    local should_goto_suitable_window = not (should_close or self.opts.kind == 'replace')
+    if should_goto_suitable_window then M.window_goto_suitable(self, os_path) end
 
     local splitright = vim.o.splitright
     local splitbelow = vim.o.splitbelow
