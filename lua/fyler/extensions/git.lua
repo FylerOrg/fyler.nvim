@@ -197,6 +197,7 @@ extensions.register({
     end,
     highlights_post = function()
       for name, hl in pairs(H.get_default_highlights()) do
+        hl.default = true
         vim.api.nvim_set_hl(0, name, hl)
       end
     end,
