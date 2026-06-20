@@ -182,6 +182,7 @@ H.setup_highlights = function()
   if hooks.on_highlight then hooks.on_highlight(highlights, palette) end
 
   for name, value in pairs(highlights) do
+    value.default = true
     vim.api.nvim_set_hl(0, name, value)
   end
 
