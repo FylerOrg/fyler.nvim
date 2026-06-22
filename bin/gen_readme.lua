@@ -115,7 +115,6 @@ local template = [[
 
 ```lua
 require('mini.deps').add('FylerOrg/fyler.nvim')
-require('fyler').setup({})
 ```
 
 ### [vim.pack](https://neovim.io/doc/user/pack)
