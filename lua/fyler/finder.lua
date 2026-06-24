@@ -960,9 +960,9 @@ function Finder:mutate()
           local hooks = config.DATA.hooks
           for _, action in ipairs(ordered_actions) do
             if action.name == 'delete' then
-              hooks.on_delete(action.src)
+              vim.schedule_wrap(hooks.on_delete)(action.src)
             elseif action.name == 'move' then
-              hooks.on_rename(action.src, action.dst)
+              vim.schedule_wrap(hooks.on_rename)(action.src, action.dst)
             end
           end
         end)
