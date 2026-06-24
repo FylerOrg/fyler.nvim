@@ -920,7 +920,13 @@ function Finder:refresh(args)
       end
 
       local flat = self.state:to_lines()
+      local undolevels = vim.bo[self.buf_id].undolevels
+      vim.bo[self.buf_id].undolevels = -1
+
       local visible, hl_ns, lines = H.render_tree(self, flat)
+
+      vim.bo[self.buf_id].undolevels = undolevels
+
       if args.callback then args.callback() end
 
       extensions.run_hook('finder_refresh_post', self, visible, hl_ns, lines, args)
