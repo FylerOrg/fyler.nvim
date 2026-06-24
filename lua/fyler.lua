@@ -103,7 +103,7 @@ H.setup_autocmds = function()
 
   au('WinEnter', '*', function()
     if vim.bo.filetype == 'fyler_finder' then return end
-    finder.window_set_prior(vim.api.nvim_get_current_tabpage(), vim.api.nvim_get_current_win())
+    util.window_set_prior(vim.api.nvim_get_current_tabpage(), vim.api.nvim_get_current_win())
   end, 'Track prior window')
 
   au('BufEnter', '*', function()
@@ -156,8 +156,8 @@ H.setup_autocmds = function()
 end
 
 H.setup_highlights = function()
-  local getbg = function(group) return util.get_hl_color(group, 'bg') end
-  local getfg = function(group) return util.get_hl_color(group, 'fg') end
+  local getbg = function(group) return util.highlight_get_color(group, 'bg') end
+  local getfg = function(group) return util.highlight_get_color(group, 'fg') end
 
   -- stylua: ignore
   local palette = {

@@ -24,7 +24,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup neovim
+      - name: Cache Neovim
+        id: cache-neovim
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/nvim-downloads
+          key: neovim-${{ matrix.os }}-${{ matrix.neovim_version }}
+
+      - name: Setup Neovim
         uses: rhysd/action-setup-vim@v1
         with:
           neovim: true
@@ -39,7 +46,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Cache Neovim
+        id: cache-neovim
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/nvim-downloads
+          key: neovim-ubuntu-latest-v0.11.0
 
       - name: Install Neovim
         uses: rhysd/action-setup-vim@v1
@@ -47,14 +62,15 @@ jobs:
           neovim: true
           version: v0.11.0
 
-      - uses: JohnnyMorganz/stylua-action@v4
+      - name: Format with StyLua
+        uses: JohnnyMorganz/stylua-action@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           version: latest
           args: false
 
-      - uses: Swatinem/rust-cache@v2
-      - uses: taiki-e/install-action@v2
+      - name: Install Selene
+        uses: taiki-e/install-action@v2
         with:
           tool: selene
 
@@ -62,4 +78,4 @@ jobs:
         run: make --silent format lint docs
 
       - name: Check for changes
-        run: if [[ -n $(git status -s) ]]; then exit 1; fi
+        run: if [[ -n $(git status -s) ]]; then git diff; exit 1; fi

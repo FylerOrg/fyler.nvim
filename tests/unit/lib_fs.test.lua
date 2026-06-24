@@ -6,10 +6,10 @@ local eq = helper.expect.equality
 T['sort sorts by directory then name'] = function()
   n.lua([[_G.fs = require('fyler.lib.fs')]])
   local entries = {
-    { full_path = '/root/z_file', name = 'z_file', type = 'file' },
-    { full_path = '/root/a_dir', name = 'a_dir', type = 'directory' },
-    { full_path = '/root/b_file', name = 'b_file', type = 'file' },
-    { full_path = '/root/m_dir', name = 'm_dir', type = 'directory' },
+    { path = '/root/z_file', name = 'z_file', type = 'file' },
+    { path = '/root/a_dir', name = 'a_dir', type = 'directory' },
+    { path = '/root/b_file', name = 'b_file', type = 'file' },
+    { path = '/root/m_dir', name = 'm_dir', type = 'directory' },
   }
   n.lua(
     [[

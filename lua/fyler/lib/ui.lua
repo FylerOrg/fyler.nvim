@@ -13,7 +13,13 @@ local H = {}
 ---@field end_row integer
 ---@field end_col integer
 
+---@class fyler.LineChange
+---@field start_row integer
+---@field end_row integer
+---@field lines string[]
+
 ---@class fyler.RenderResult
+---@field changes fyler.LineChange[]
 ---@field lines string[]
 ---@field highlights fyler.HighlightRange[]
 ---@field extmarks fyler.ExtMark[]
@@ -181,9 +187,58 @@ H.offset_highlight = function(hl, row_offset, col_offset)
   }
 end
 
+---@param old_lines string[]
+---@param new_lines string[]
+---@return fyler.LineChange[]
+H.diff_lines = function(old_lines, new_lines)
+  local m, n = #old_lines, #new_lines
+  if m == 0 and n == 0 then return {} end
+
+  local prefix = 0
+  while prefix < m and prefix < n and old_lines[prefix + 1] == new_lines[prefix + 1] do
+    prefix = prefix + 1
+  end
+
+  local suffix = 0
+  while suffix < m - prefix and suffix < n - prefix and old_lines[m - suffix] == new_lines[n - suffix] do
+    suffix = suffix + 1
+  end
+
+  local start_row = prefix
+  local old_end = m - suffix
+  local new_middle = {}
+  for i = prefix + 1, n - suffix do
+    new_middle[#new_middle + 1] = new_lines[i]
+  end
+
+  if #new_middle == 0 and old_end == start_row then return {} end
+
+  return { { start_row = start_row, end_row = old_end, lines = new_middle } }
+end
+
 ---@nodiscard
 ---@param component fyler.UiComponent
+---@param prev_component fyler.UiComponent|nil
 ---@return fyler.RenderResult
-M.compose = function(component) return H.compose(component) end
+M.compose = function(component, prev_component)
+  local result = H.compose(component)
+
+  if prev_component then
+    local prev_result = H.compose(prev_component)
+    return {
+      changes = H.diff_lines(prev_result.lines, result.lines),
+      lines = result.lines,
+      highlights = result.highlights,
+      extmarks = result.extmarks,
+    }
+  else
+    return {
+      changes = { { start_row = 0, end_row = -1, lines = result.lines } },
+      lines = result.lines,
+      highlights = result.highlights,
+      extmarks = result.extmarks,
+    }
+  end
+end
 
 return M

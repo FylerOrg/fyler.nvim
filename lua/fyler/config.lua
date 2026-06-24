@@ -84,7 +84,7 @@ local default_config = {
   buf_opts = {},
   -- Follow current file
   follow_current_file = true,
-  -- List of extensions to enable (e.g., 'git', 'trash')
+  -- List of extensions to enable (e.g., 'git', 'trash', 'watcher')
   extensions = {},
   -- Event hooks for custom behavior (on_highlight, on_delete, on_rename)
   hooks = {},
@@ -129,7 +129,7 @@ local default_config = {
       ['-'] = { action = 'visit', args = { parent = true } },
       ['.'] = { action = 'visit', args = { cursor = true } },
       ['<BS>'] = { action = 'shrink', args = { parent = true } },
-      ['<C-R>'] = { action = 'refresh' },
+      ['<C-R>'] = { action = 'refresh', args = { recursive = true, force = true } },
       ['<C-S>'] = { action = 'select', args = { split = true } },
       ['<C-T>'] = { action = 'select', args = { tabedit = true } },
       ['<C-V>'] = { action = 'select', args = { vsplit = true } },

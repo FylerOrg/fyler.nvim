@@ -29,6 +29,8 @@ local default_icons = {
   ['!!'] = { icon = '.', hl = 'FylerGitIgnored' },
 }
 local default_highlights_tbl
+local refresh_count = 0
+local status_cache = {}
 local H = {}
 
 function H.repo_root(path)
@@ -77,10 +79,20 @@ function H.get_icon(xy, icons)
   return nil, nil
 end
 
+function H.store_known_roots()
+  local watcher_cfg = require('fyler.config').DATA.extensions.watcher
+  if not watcher_cfg or not watcher_cfg.enabled then return end
+  local roots = {}
+  for _, root in pairs(repo_root_cache) do
+    if root then roots[root] = true end
+  end
+  watcher_cfg.known_git_roots = roots
+end
+
 function H.propagate_to_parents(statuses)
-  for full_path, xy in pairs(statuses) do
+  for path, xy in pairs(statuses) do
     local xy_prio = propagate_priority[xy] or 0
-    local dir = vim.fs.dirname(full_path)
+    local dir = vim.fs.dirname(path)
     while #dir > 0 do
       local existing = statuses[dir]
       if not existing or xy_prio > (propagate_priority[existing] or 0) then statuses[dir] = xy end
@@ -91,7 +103,7 @@ function H.propagate_to_parents(statuses)
   end
 end
 
-function H.statuses_async(entries, cb)
+function H.statuses_async(entries, force, cb)
   if #entries == 0 then
     cb({})
     return
@@ -99,7 +111,7 @@ function H.statuses_async(entries, cb)
 
   local repos = {}
   for _, entry in ipairs(entries) do
-    local root = H.repo_root(entry.full_path)
+    local root = H.repo_root(entry.path)
     if root then repos[root] = true end
   end
 
@@ -108,18 +120,45 @@ function H.statuses_async(entries, cb)
     return
   end
 
-  local all_statuses = {}
+  local repos_to_fetch = {}
+  if force then
+    repos_to_fetch = vim.deepcopy(repos)
+  else
+    for root, _ in pairs(repos) do
+      if not status_cache[root] then repos_to_fetch[root] = true end
+    end
+  end
+
+  if not next(repos_to_fetch) then
+    local all_statuses = {}
+    for root, _ in pairs(repos) do
+      for path, xy in pairs(status_cache[root] or {}) do
+        all_statuses[path] = xy
+      end
+    end
+    cb(all_statuses)
+    return
+  end
 
   local total = 0
-  for _ in pairs(repos) do
+  for _ in pairs(repos_to_fetch) do
     total = total + 1
   end
 
-  local done = util.once_all(total, function() cb(all_statuses) end)
+  local done = util.promise_all(total, function()
+    local all_statuses = {}
+    for root, _ in pairs(repos) do
+      for path, xy in pairs(status_cache[root] or {}) do
+        all_statuses[path] = xy
+      end
+    end
+    cb(all_statuses)
+  end)
 
-  for root, _ in pairs(repos) do
+  for root, _ in pairs(repos_to_fetch) do
     vim.system({ 'git', '-C', root, 'status', '--porcelain', '-z' }, { text = true }, function(result)
-      if result.code == 0 then H.parse_porcelain(result.stdout, root, all_statuses) end
+      status_cache[root] = {}
+      if result.code == 0 then H.parse_porcelain(result.stdout, root, status_cache[root]) end
       done()
     end)
   end
@@ -136,7 +175,7 @@ end
 function H.get_default_highlights()
   if default_highlights_tbl then return default_highlights_tbl end
 
-  local getfg = function(group) return util.get_hl_color(group, 'fg') end
+  local getfg = function(group) return util.highlight_get_color(group, 'fg') end
   return {
     FylerGitConflict = { fg = '#E06C75' },
     FylerGitDeleted = { fg = '#E06C75' },
@@ -154,12 +193,12 @@ extensions.register({
     config.extensions.git = vim.tbl_deep_extend('force', { icons = vim.deepcopy(default_icons), inline = true }, opts)
   end,
   hooks = {
-    finder_refresh_post = function(inst, visible, hl_ns, lines, done)
+    finder_refresh_post = function(inst, visible, hl_ns, lines, args)
       local cfg = require('fyler.config').DATA.extensions.git
-      if not cfg.enabled then
-        done()
-        return
-      end
+      if not cfg.enabled then return end
+
+      refresh_count = refresh_count + 1
+      local current_count = refresh_count
 
       local gc = H.git_col(lines)
       local function apply(i, item, stat)
@@ -167,32 +206,43 @@ extensions.register({
         if not hl then return end
         if icon then
           if cfg.inline then
-            pcall(vim.api.nvim_buf_set_extmark, inst.buf_id, hl_ns, i - 1, item._name_col + #item.name, {
-              virt_text = { { icon, hl } },
-              hl_mode = 'combine',
-            })
+            pcall(
+              vim.api.nvim_buf_set_extmark,
+              inst.buf_id,
+              hl_ns,
+              i - 1,
+              item._name_col + #item.name,
+              { virt_text = { { icon, hl } }, hl_mode = 'combine' }
+            )
           else
-            pcall(vim.api.nvim_buf_set_extmark, inst.buf_id, hl_ns, i - 1, 0, {
-              virt_text = { { icon, hl } },
-              virt_text_win_col = gc,
-              hl_mode = 'combine',
-            })
+            pcall(
+              vim.api.nvim_buf_set_extmark,
+              inst.buf_id,
+              hl_ns,
+              i - 1,
+              0,
+              { virt_text = { { icon, hl } }, virt_text_win_col = gc, hl_mode = 'combine' }
+            )
           end
         end
-        pcall(vim.api.nvim_buf_set_extmark, inst.buf_id, hl_ns, i - 1, item._name_col, {
-          hl_group = hl,
-          end_line = i - 1,
-          end_col = item._name_col + #item.name,
-          hl_mode = 'combine',
-        })
+        pcall(
+          vim.api.nvim_buf_set_extmark,
+          inst.buf_id,
+          hl_ns,
+          i - 1,
+          item._name_col,
+          { hl_group = hl, end_line = i - 1, end_col = item._name_col + #item.name, hl_mode = 'combine' }
+        )
       end
-      H.statuses_async(visible, function(statuses)
-        H.propagate_to_parents(statuses)
-        for i, item in ipairs(visible) do
-          local stat = statuses[item.full_path]
-          if stat then apply(i, item, stat) end
+      H.statuses_async(visible, args and args.force, function(statuses)
+        if current_count == refresh_count then
+          H.propagate_to_parents(statuses)
+          H.store_known_roots()
+          for i, item in ipairs(visible) do
+            local stat = statuses[item.path]
+            if stat then apply(i, item, stat) end
+          end
         end
-        done()
       end)
     end,
     highlights_post = function()

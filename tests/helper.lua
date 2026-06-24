@@ -22,7 +22,7 @@ function util.get_tmpdir(name, children)
   for _, path in ipairs(children) do
     local path_ext = temp_dir .. '/' .. path
     if vim.endswith(path, '/') then
-      vim.fn.mkdir(path_ext)
+      vim.fn.mkdir(path_ext, 'p')
     else
       vim.fn.writefile({ 'ROOT/' .. path }, path_ext)
     end
@@ -33,7 +33,7 @@ end
 
 function util.is_windows() return vim.fn.has('win32') == 1 end
 if util.is_windows() then
-  function util.normpath(path) return (path:gsub('\\', '/'):gsub('(.)/$', '%1'):gsub('^(%a):/+([^/])', '%1://%2')) end
+  function util.normpath(path) return (path:gsub('\\', '/'):gsub('(.)/$', '%1'):gsub('^(%a):/+([^/])', '%1:/%2')) end
 else
   function util.normpath(path) return (path:gsub('\\', '/'):gsub('(.)/$', '%1')) end
 end

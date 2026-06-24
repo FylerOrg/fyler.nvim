@@ -1,26 +1,8 @@
 local libpath = Fyler.import('fyler.lib.path')
+local async = Fyler.import('fyler.lib.async')
 
 local M = {}
 local H = {}
-
-local resume = function(co, ...)
-  local args = { ... }
-  if coroutine.status(co) == 'suspended' then
-    coroutine.resume(co, unpack(args))
-  else
-    vim.schedule(function() coroutine.resume(co, unpack(args)) end)
-  end
-end
-
-local await = function(fn)
-  return function(...)
-    local args = { ... }
-    local co = coroutine.running()
-    table.insert(args, function(...) resume(co, ...) end)
-    fn(unpack(args))
-    return coroutine.yield()
-  end
-end
 
 local uv = {}
 for _, name in ipairs({
@@ -37,7 +19,7 @@ for _, name in ipairs({
   'fs_stat',
   'fs_unlink',
 }) do
-  uv[name] = await(vim.uv[name])
+  uv[name] = async.wrap(vim.uv[name])
 end
 
 local msg_hints = {
@@ -62,19 +44,6 @@ local fs = function(name, ...)
   local err, result = uv[name](...)
   if err then error(('%s: %s'):format(name, err)) end
   return result
-end
-
-local run = function(fn, cb)
-  local co = coroutine.create(function()
-    local ok, err_msg = pcall(fn)
-    if ok then
-      cb(nil)
-    else
-      cb(build_simple_msg(err_msg))
-    end
-  end)
-  local ok, err_msg = coroutine.resume(co)
-  if not ok then cb(build_simple_msg(err_msg)) end
 end
 
 H.delete_recursive = function(path)
@@ -151,7 +120,7 @@ M.fs_is_dir = function(path) return vim.fn.isdirectory(libpath.to_normalize(path
 
 M.fs_scan_dir = function(path, cb)
   assert(path, 'Expected string got nil')
-  run(function()
+  async.run(function()
     local dir = fs('fs_opendir', libpath.to_os(path))
     local entries = {}
     while true do
@@ -160,20 +129,24 @@ M.fs_scan_dir = function(path, cb)
       vim.list_extend(entries, chunk)
     end
     for _, entry in ipairs(entries) do
+      entry.path = libpath.do_join(path, entry.name)
+      entry.full_path = entry.path
       if entry.type == 'link' then
-        local full_path = libpath.do_join(path, entry.name)
-        local stat_err, stat = uv.fs_stat(full_path)
+        local stat_err, stat = uv.fs_stat(entry.path)
         if not stat_err then
           entry.type = stat.type
-          local rp_err, rp = uv.fs_realpath(full_path)
-          if not rp_err then entry.link_target = rp end
+          local rp_err, rp = uv.fs_realpath(entry.path)
+          if not rp_err then
+            entry.link = rp
+            entry.link_target = entry.link
+          end
         end
       end
     end
     fs('fs_closedir', dir)
     cb(nil, entries)
   end, function(err)
-    if err then cb(err, nil) end
+    if err then cb(build_simple_msg(err), nil) end
   end)
 end
 
@@ -186,13 +159,19 @@ local action_handlers = {
 
 M.fs_mutate = function(actions, cb)
   local current_action
-  run(function()
+  async.run(function()
     for _, action in ipairs(actions) do
       current_action = action
       local handler = action_handlers[action.name]
       if handler then handler(action) end
     end
-  end, function(err_msg) cb(err_msg and ('Failed to ' .. current_action.name .. ': ' .. err_msg)) end)
+  end, function(err)
+    if err then
+      cb('Failed to ' .. current_action.name .. ': ' .. build_simple_msg(err))
+    else
+      cb(nil)
+    end
+  end)
 end
 
 return M

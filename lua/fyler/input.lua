@@ -21,17 +21,18 @@ M.get_confirmation = function(lines, highlights, callback)
 
   vim.api.nvim_buf_set_lines(buf_id, 0, -1, false, lines)
 
-  util.set_buf_option(buf_id, 'bufhidden', 'wipe')
-  util.set_buf_option(buf_id, 'modifiable', false)
+  util.buffer_set_option(buf_id, 'bufhidden', 'wipe')
+  util.buffer_set_option(buf_id, 'modifiable', false)
 
   vim.api.nvim_buf_clear_namespace(buf_id, hl_ns, 0, -1)
   for _, hl in ipairs(highlights) do
-    vim.api.nvim_buf_set_extmark(buf_id, hl_ns, hl.start_row, hl.start_col, {
-      hl_group = hl.hl_group,
-      end_row = hl.end_row,
-      end_col = hl.end_col,
-      hl_mode = 'combine',
-    })
+    vim.api.nvim_buf_set_extmark(
+      buf_id,
+      hl_ns,
+      hl.start_row,
+      hl.start_col,
+      { hl_group = hl.hl_group, end_row = hl.end_row, end_col = hl.end_col, hl_mode = 'combine' }
+    )
   end
 
   local confirm_text = ' Want to continue? '

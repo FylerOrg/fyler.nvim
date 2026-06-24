@@ -26,32 +26,165 @@ T['Finder with kind']['can render entries'] = function(kind)
   n.expect_screenshot()
 end
 
-T['Finder with kind']['respects mappings'] = function(kind)
-  local tmpdir = helper.get_tmpdir('data', { 'a-dir/', 'a-dir/aa-file', '.hidden-file' })
+T['Finder with kind']['can expand directory'] = function(kind)
+  local tmpdir = helper.get_tmpdir('data', { 'a-dir/', 'a-dir/aa-file' })
+  n.fwd_lua('require("fyler").setup')({})
+  n.fwd_lua('require("fyler").open')({ kind = kind, root_path = tmpdir })
+  vim.uv.sleep(10)
+  n.expect_screenshot()
+  n.type_keys('<CR>')
+  vim.uv.sleep(10)
+  n.expect_screenshot()
+end
+
+T['Finder with kind']['can collapse parent'] = function(kind)
+  local tmpdir = helper.get_tmpdir('data', { 'a-dir/', 'a-dir/aa-file' })
   n.fwd_lua('require("fyler").setup')({})
   n.fwd_lua('require("fyler").open')({ kind = kind, root_path = tmpdir })
   vim.uv.sleep(10)
   n.type_keys('<CR>')
   vim.uv.sleep(10)
   n.expect_screenshot()
-  n.type_keys({ 'j', '<BS>' })
+  n.type_keys('j', '<BS>')
+  vim.uv.sleep(10)
+  n.expect_screenshot()
+end
+
+T['Finder with kind']['can collapse directory with enter'] = function(kind)
+  local tmpdir = helper.get_tmpdir('data', { 'a-dir/', 'a-dir/aa-file' })
+  n.fwd_lua('require("fyler").setup')({})
+  n.fwd_lua('require("fyler").open')({ kind = kind, root_path = tmpdir })
+  vim.uv.sleep(10)
+  n.type_keys('<CR>')
+  vim.uv.sleep(10)
+  n.expect_screenshot()
+  n.type_keys('<CR>')
+  vim.uv.sleep(10)
+  n.expect_screenshot()
+end
+
+T['Finder with kind']['can toggle hidden items'] = function(kind)
+  local tmpdir = helper.get_tmpdir('data', { '.hidden-file', 'visible-file' })
+  n.fwd_lua('require("fyler").setup')({})
+  n.fwd_lua('require("fyler").open')({ kind = kind, root_path = tmpdir })
   vim.uv.sleep(10)
   n.expect_screenshot()
   n.type_keys('g.')
   vim.uv.sleep(10)
   n.expect_screenshot()
+end
+
+T['Finder with kind']['can toggle hidden items twice'] = function(kind)
+  local tmpdir = helper.get_tmpdir('data', { '.hidden-file', 'visible-file' })
+  n.fwd_lua('require("fyler").setup')({})
+  n.fwd_lua('require("fyler").open')({ kind = kind, root_path = tmpdir })
+  vim.uv.sleep(10)
+  n.type_keys('g.')
+  vim.uv.sleep(10)
+  n.expect_screenshot()
+  n.type_keys('g.')
+  vim.uv.sleep(10)
+  n.expect_screenshot()
+end
+
+T['Finder with kind']['can enter directory under cursor'] = function(kind)
+  local tmpdir = helper.get_tmpdir('data', { 'sub/', 'sub/file' })
+  n.fwd_lua('require("fyler").setup')({})
+  n.fwd_lua('require("fyler").open')({ kind = kind, root_path = tmpdir })
+  vim.uv.sleep(10)
+  n.expect_screenshot()
+  n.type_keys('.')
+  vim.uv.sleep(10)
+  n.expect_screenshot()
+end
+
+T['Finder with kind']['can navigate to parent'] = function(kind)
+  local tmpdir = helper.get_tmpdir('data', { 'sub/', 'sub/file' })
+  n.fwd_lua('require("fyler").setup')({})
+  n.fwd_lua('require("fyler").open')({ kind = kind, root_path = tmpdir })
+  vim.uv.sleep(10)
   n.type_keys('.')
   vim.uv.sleep(10)
   n.expect_screenshot()
   n.type_keys('-')
   vim.uv.sleep(10)
   n.expect_screenshot()
+end
+
+T['Finder with kind']['can navigate to root'] = function(kind)
+  local tmpdir = helper.get_tmpdir('data', { 'sub/', 'sub/nested/', 'sub/nested/deep' })
+  n.fwd_lua('require("fyler").setup')({})
+  n.fwd_lua('require("fyler").open')({ kind = kind, root_path = tmpdir })
+  vim.uv.sleep(10)
   n.type_keys('.')
   vim.uv.sleep(10)
+  n.type_keys('.')
+  vim.uv.sleep(10)
+  n.expect_screenshot()
   n.type_keys('=')
   vim.uv.sleep(10)
   n.expect_screenshot()
+end
+
+T['Finder with kind']['can close finder'] = function(kind)
+  local tmpdir = helper.get_tmpdir('data', { 'a-file' })
+  n.fwd_lua('require("fyler").setup')({})
+  n.fwd_lua('require("fyler").open')({ kind = kind, root_path = tmpdir })
+  vim.uv.sleep(10)
+  n.expect_screenshot()
   n.type_keys('q')
+  vim.uv.sleep(10)
+  n.expect_screenshot()
+end
+
+T['Finder with kind']['can toggle indent guides'] = function(kind)
+  local tmpdir = helper.get_tmpdir('data', { 'a-dir/', 'a-dir/aa-file' })
+  n.fwd_lua('require("fyler").setup')({})
+  n.fwd_lua('require("fyler").open')({ kind = kind, root_path = tmpdir })
+  vim.uv.sleep(10)
+  n.type_keys('<CR>')
+  vim.uv.sleep(10)
+  n.expect_screenshot()
+  n.type_keys('gi')
+  vim.uv.sleep(10)
+  n.expect_screenshot()
+end
+
+T['Finder with kind']['can toggle indent guides twice'] = function(kind)
+  local tmpdir = helper.get_tmpdir('data', { 'a-dir/', 'a-dir/aa-file' })
+  n.fwd_lua('require("fyler").setup')({})
+  n.fwd_lua('require("fyler").open')({ kind = kind, root_path = tmpdir })
+  vim.uv.sleep(10)
+  n.type_keys('<CR>')
+  vim.uv.sleep(10)
+  n.type_keys('gi')
+  vim.uv.sleep(10)
+  n.expect_screenshot()
+  n.type_keys('gi')
+  vim.uv.sleep(10)
+  n.expect_screenshot()
+end
+
+T['Finder with kind']['can toggle finder'] = function(kind)
+  local tmpdir = helper.get_tmpdir('data', { 'a-file' })
+  n.fwd_lua('require("fyler").setup')({})
+  n.fwd_lua('require("fyler").toggle')({ kind = kind, root_path = tmpdir })
+  vim.uv.sleep(10)
+  n.expect_screenshot()
+  n.fwd_lua('require("fyler").toggle')({ kind = kind, root_path = tmpdir })
+  vim.uv.sleep(10)
+  n.expect_screenshot()
+  n.fwd_lua('require("fyler").toggle')({ kind = kind, root_path = tmpdir })
+  vim.uv.sleep(10)
+  n.expect_screenshot()
+end
+
+T['Finder with kind']['can follow current file'] = function(kind)
+  if kind == 'floating' or kind == 'replace' then return end
+  local tmpdir = helper.get_tmpdir('data', { 'dir/', 'dir/file' })
+  n.fwd_lua('require("fyler").setup')({ follow_current_file = true })
+  n.fwd_lua('vim.cmd.edit')(helper.joinpath(tmpdir, 'dir', 'file'))
+  n.fwd_lua('require("fyler").open')({ kind = kind, root_path = tmpdir })
   vim.uv.sleep(10)
   n.expect_screenshot()
 end
@@ -123,31 +256,78 @@ T['Finder with kind']['can prevent user from hijacking window'] = function(kind)
   n.expect_screenshot()
 end
 
-T['Finder with kind']['can do basic file system manipulation'] = function(kind)
+T['Finder with kind']['can delete file'] = function(kind)
   local tmpdir = helper.get_tmpdir('data', { 'a-file', 'b-file' })
   n.fwd_lua('require("fyler").setup')({})
   n.fwd_lua('require("fyler").open')({ kind = kind, root_path = tmpdir })
   vim.uv.sleep(10)
-  n.type_keys({
-    'dd',
-    '0',
-    'C',
-    'renamed-file',
-    '<ESC>',
-    'yyp',
-    '0',
-    'C',
-    'copied-file',
-    '<ESC>',
-    'o',
-    'new-file',
-    '<ESC>',
-    ':w<CR>',
-  })
-  n.expect_screenshot()
+  n.type_keys({ 'dd', ':w<CR>' })
+  vim.uv.sleep(10)
   n.type_keys('y')
   vim.uv.sleep(10)
+  helper.expect.equality(vim.fn.filereadable(helper.joinpath(tmpdir, 'a-file')), 0)
+  helper.expect.equality(vim.fn.filereadable(helper.joinpath(tmpdir, 'b-file')), 1)
+end
+
+T['Finder with kind']['can rename file'] = function(kind)
+  local tmpdir = helper.get_tmpdir('data', { 'a-file' })
+  n.fwd_lua('require("fyler").setup')({})
+  n.fwd_lua('require("fyler").open')({ kind = kind, root_path = tmpdir })
+  vim.uv.sleep(10)
+  n.type_keys({ '0', 'C', 'renamed-file', '<ESC>', ':w<CR>' })
+  vim.uv.sleep(10)
+  n.type_keys('y')
+  vim.uv.sleep(10)
+  helper.expect.equality(vim.fn.filereadable(helper.joinpath(tmpdir, 'renamed-file')), 1)
+  helper.expect.equality(vim.fn.filereadable(helper.joinpath(tmpdir, 'a-file')), 0)
+end
+
+T['Finder with kind']['can create file'] = function(kind)
+  local tmpdir = helper.get_tmpdir('data', { 'a-file' })
+  n.fwd_lua('require("fyler").setup')({})
+  n.fwd_lua('require("fyler").open')({ kind = kind, root_path = tmpdir })
+  vim.uv.sleep(10)
+  n.type_keys({ 'o', 'new-file', '<ESC>', ':w<CR>' })
+  vim.uv.sleep(10)
+  n.type_keys('y')
+  vim.uv.sleep(10)
+  helper.expect.equality(vim.fn.filereadable(helper.joinpath(tmpdir, 'new-file')), 1)
+end
+
+T['Finder with kind']['can copy file'] = function(kind)
+  local tmpdir = helper.get_tmpdir('data', { 'a-file' })
+  n.fwd_lua('require("fyler").setup')({})
+  n.fwd_lua('require("fyler").open')({ kind = kind, root_path = tmpdir })
+  vim.uv.sleep(10)
+  n.type_keys({ 'yyp', '0', 'C', 'copied-file', '<ESC>', ':w<CR>' })
+  vim.uv.sleep(10)
+  n.type_keys('y')
+  vim.uv.sleep(10)
+  helper.expect.equality(vim.fn.filereadable(helper.joinpath(tmpdir, 'a-file')), 1)
+  helper.expect.equality(vim.fn.filereadable(helper.joinpath(tmpdir, 'copied-file')), 1)
+end
+
+T['Finder with kind']['can cancel mutation'] = function(kind)
+  local tmpdir = helper.get_tmpdir('data', { 'a-file' })
+  n.fwd_lua('require("fyler").setup')({})
+  n.fwd_lua('require("fyler").open')({ kind = kind, root_path = tmpdir })
+  vim.uv.sleep(10)
+  n.type_keys({ 'o', 'new-file', '<ESC>', ':w<CR>' })
+  vim.uv.sleep(10)
   n.expect_screenshot()
+  n.type_keys('n')
+  vim.uv.sleep(10)
+  helper.expect.equality(vim.fn.filereadable(helper.joinpath(tmpdir, 'new-file')), 0)
+end
+
+T['Finder with kind']['can auto-confirm simple mutation'] = function(kind)
+  local tmpdir = helper.get_tmpdir('data', { 'a-file' })
+  n.fwd_lua('require("fyler").setup')({ auto_confirm_simple_mutation = true })
+  n.fwd_lua('require("fyler").open')({ kind = kind, root_path = tmpdir })
+  vim.uv.sleep(10)
+  n.type_keys({ 'o', 'new-file', '<ESC>', ':w<CR>' })
+  vim.uv.sleep(10)
+  helper.expect.equality(vim.fn.filereadable(helper.joinpath(tmpdir, 'new-file')), 1)
 end
 
 T['Finder with kind']['can handle swap in file system manipulation'] = function(kind)

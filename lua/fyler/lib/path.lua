@@ -118,4 +118,29 @@ end
 ---@return string
 M.to_rel = function(base, target) return vim.fs.relpath(M.to_normalize(base), M.to_normalize(target)) or '' end
 
+---@nodiscard
+---@param a string
+---@param b string
+---@return string|nil
+M.common_ancestor = function(a, b)
+  a = M.to_normalize(a)
+  b = M.to_normalize(b)
+
+  local parts_a = vim.split(a, '/', { plain = true })
+  local parts_b = vim.split(b, '/', { plain = true })
+
+  local common = {}
+  for i = 1, math.min(#parts_a, #parts_b) do
+    if parts_a[i] == parts_b[i] then
+      table.insert(common, parts_a[i])
+    else
+      break
+    end
+  end
+
+  if #common <= 1 then return nil end
+
+  return table.concat(common, '/')
+end
+
 return M
