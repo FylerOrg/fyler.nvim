@@ -76,14 +76,14 @@ function H.process_serially(actions, idx, done)
         if err then vim.notify('Failed to write trash info: ' .. err, vim.log.levels.ERROR) end
         action.name = 'move'
         action.dst = target
-        hooks.on_delete(action.src)
+        vim.schedule_wrap(hooks.on_delete)(action.src)
         H.process_serially(actions, idx + 1, done)
       end)
     end)
   elseif H.platform == 'macos' then
     vim.system({ '/usr/bin/trash', action.src }, { text = true }, function(result)
       if result.code == 0 then
-        hooks.on_delete(action.src)
+        vim.schedule_wrap(hooks.on_delete)(action.src)
         H.process_serially(actions, idx + 1, done)
       else
         vim.notify('Trash failed: ' .. (result.stdout or result.stderr or 'unknown error'), vim.log.levels.ERROR)
@@ -96,7 +96,7 @@ function H.process_serially(actions, idx, done)
     )
     vim.system({ 'powershell', '-NoProfile', '-Command', cmd }, { text = true }, function(result)
       if result.code == 0 then
-        hooks.on_delete(action.src)
+        vim.schedule_wrap(hooks.on_delete)(action.src)
         H.process_serially(actions, idx + 1, done)
       else
         vim.notify('Trash failed: ' .. (result.stdout or result.stderr or 'unknown error'), vim.log.levels.ERROR)
