@@ -1,0 +1,54 @@
+name: Bug report
+description: Report a problem to help us improve
+title: "[BUG] "
+labels: [bug]
+body:
+  - type: checkboxes
+    id: guidelines
+    attributes:
+      label: Report guidelines
+      options:
+        - label: I have updated 'fyler.nvim' to latest version of the `main` branch
+          required: true
+  - type: dropdown
+    id: branch
+    attributes:
+      label: "Branch"
+      description: "Choose branch in which you encounter this bug"
+      options:
+        - main
+        - stable
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: "OS"
+      description: "Choose your OS"
+      options:
+        - Linux
+        - MacOS
+        - Windows
+    validations:
+      required: true
+  - type: input
+    id: nvim-version
+    attributes:
+      label: "Neovim version"
+      description: "Write the latest Neovim version on which you can reproduce the problem"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: "Description"
+      description: "A short description of a problem; include expected behavior"
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: "Reproduction"
+      description: "Steps to reproduce the issue."
+    validations:
+      required: true
