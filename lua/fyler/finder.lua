@@ -578,11 +578,23 @@ function Finder:close()
 
   if not util.window_is_valid(self.win_id) then return end
 
-  pcall(vim.api.nvim_win_close, self.win_id, true)
-  pcall(vim.api.nvim_win_call, self.win_id, function()
-    if not util.window_is_valid(self.win_id) then return end
+  if self.opts.kind == 'replace' then
+    local alt_buf = vim.api.nvim_win_call(self.win_id, function() return vim.fn.bufnr('#') end)
+    if vim.api.nvim_buf_is_valid(alt_buf) then
+      vim.api.nvim_win_set_buf(self.win_id, alt_buf)
+    else
+      local scratch = vim.api.nvim_create_buf(false, true)
+      vim.bo[scratch].bufhidden = 'wipe'
+      vim.api.nvim_win_set_buf(self.win_id, scratch)
+    end
     pcall(vim.api.nvim_buf_delete, self.buf_id, { force = true })
-  end)
+  else
+    pcall(vim.api.nvim_win_close, self.win_id, true)
+    pcall(vim.api.nvim_win_call, self.win_id, function()
+      if not util.window_is_valid(self.win_id) then return end
+      pcall(vim.api.nvim_buf_delete, self.buf_id, { force = true })
+    end)
+  end
 
   extensions.run_hook('finder_close_post', self)
 
