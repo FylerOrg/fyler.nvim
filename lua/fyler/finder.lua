@@ -850,6 +850,15 @@ function Finder:open()
   end
 
   local buf_was_unloaded = false
+  au(
+    'BufLeave',
+    vim.schedule_wrap(function()
+      if not (util.window_is_valid(self.win_id) and vim.api.nvim_win_get_buf(self.win_id) == self.buf_id) then
+        self:close()
+      end
+    end)
+  )
+
   au('BufUnload', function()
     buf_was_unloaded = true
     vim.schedule(function()
@@ -861,10 +870,12 @@ function Finder:open()
       end
     end)
   end, 'Detect buffer deletion')
+
   au('BufReadCmd', function()
     buf_was_unloaded = false
     self:refresh({ force = true, recursive = true })
   end, 'Ensure buffer reloads')
+
   au('BufWipeout', function()
     buf_was_unloaded = false
     self.win_id = nil
@@ -872,7 +883,9 @@ function Finder:open()
     self._refresh_count = nil
     self._pending_refresh = nil
   end, 'Clean up on buffer wipeout')
+
   au('BufWriteCmd', function() self:mutate() end, 'Ensure buffer saves')
+
   au('VimResized', function() self:resize() end, 'Ensure resize')
 
   if self.opts.bound_cursor then
