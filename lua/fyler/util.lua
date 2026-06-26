@@ -97,7 +97,7 @@ function M.window_get_config(window_config)
 
   if window_config.kind == 'replace' then return end
 
-  local has_border = (window_config.kind == 'floating' and window_config.border ~= 'none')
+  local has_border = (window_config.kind == 'floating' and not (window_config.border == 'none'))
   local has_tabline = vim.o.showtabline > 0
   local view_lines = M.calculate_view_lines()
 

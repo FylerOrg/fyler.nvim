@@ -89,7 +89,7 @@ vim.api.nvim_set_decoration_provider(ns, {
               ch = has_sibling_below(indents, blanks, l, scanbot, ilevel) and '│ ' or '  '
             else
               local ni = next_sibling_indent(indents, blanks, l, scanbot, indent)
-              ch = (not ni or ni ~= indent) and '└╴' or '├╴'
+              ch = (not ni or not (ni == indent)) and '└╴' or '├╴'
             end
 
             vim.api.nvim_buf_set_extmark(bufnr, ns, l - 1, col, {

@@ -91,7 +91,7 @@ extensions.register({
       end
 
       local known_roots = cfg.known_git_roots or {}
-      local has_known_roots = next(known_roots) ~= nil
+      local has_known_roots = not (next(known_roots) == nil)
 
       if has_known_roots then
         for root, _ in pairs(known_roots) do
@@ -112,7 +112,7 @@ extensions.register({
         if not state.handles[dir_path] then
           local is_git_dir = dir_path:match('/%.git$')
           H.start_handle(buf_id, dir_path, function(filename, status)
-            if is_git_dir and filename and filename ~= 'index' then return end
+            if is_git_dir and filename and not (filename == 'index') then return end
             if not is_git_dir and not (status and status.rename) then return end
 
             if is_git_dir then

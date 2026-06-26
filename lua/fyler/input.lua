@@ -60,6 +60,7 @@ M.get_confirmation = function(lines, highlights, callback)
   local get_callback = function(returned_value)
     return function()
       pcall(vim.api.nvim_win_close, win_id, true)
+
       callback(returned_value)
     end
   end

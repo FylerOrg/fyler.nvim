@@ -323,7 +323,7 @@ H.compute_fs_actions = function(instance, id_to_path, buf_lines)
   for id, transition in pairs(transitions) do
     local keep_original = vim.tbl_contains(transition, id_to_path[id])
     for i, new_path in ipairs(transition) do
-      if new_path ~= id_to_path[id] then
+      if not (new_path == id_to_path[id]) then
         if keep_original or i < #transition then
           table.insert(fs_actions, { name = 'copy', src = id_to_path[id], dst = new_path })
         else
@@ -614,6 +614,12 @@ function Finder:close()
 
       pcall(vim.api.nvim_buf_delete, self.buf_id, { force = true })
     end)
+
+    -- HACK: Restore origin window for 'floating' kind
+    if self.opts.kind == 'floating' and util.window_is_valid(vim.t.fyler_origin_win_id) then
+      vim.api.nvim_set_current_win(vim.t.fyler_origin_win_id)
+      vim.t.fyler_origin_win_id = nil
+    end
   end
 
   extensions.run_hook('finder_close_post', self)
@@ -817,6 +823,7 @@ function Finder:open()
   end
 
   local win_config = util.window_get_config(self.opts)
+  local origin_win_id = vim.api.nvim_get_current_win()
 
   local buf_name = H.buffer_name(self)
   self.buf_id = vim.fn.bufnr('^' .. buf_name, '$')
@@ -832,6 +839,8 @@ function Finder:open()
     self.win_id = vim.api.nvim_get_current_win()
     vim.api.nvim_win_set_buf(self.win_id, self.buf_id)
   end
+
+  vim.t.fyler_origin_win_id = origin_win_id
 
   util.window_set_option(self.win_id, 'cursorline', false)
   util.window_set_option(self.win_id, 'number', false)

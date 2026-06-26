@@ -103,6 +103,8 @@ H.setup_autocmds = function()
 
   au('WinEnter', '*', function()
     if vim.bo.filetype == 'fyler_finder' then return end
+    local win_config = vim.api.nvim_win_get_config(vim.api.nvim_get_current_win())
+    if win_config and (#win_config.relative > 0 or win_config.external) then return end
     util.window_set_prior(vim.api.nvim_get_current_tabpage(), vim.api.nvim_get_current_win())
   end, 'Track prior window')
 
@@ -111,13 +113,13 @@ H.setup_autocmds = function()
 
     local prior_buf_id = vim.fn.bufnr('#')
     if prior_buf_id < 1 then return end
-    if vim.bo[prior_buf_id].filetype ~= 'fyler_finder' then return end
+    if not (vim.bo[prior_buf_id].filetype == 'fyler_finder') then return end
 
     local current_tab_id = vim.api.nvim_get_current_tabpage()
     local current_win_id = vim.api.nvim_get_current_win()
     local instance = finder.instance_get_or_nil(current_tab_id)
     if not instance then return end
-    if instance.win_id ~= current_win_id then return end
+    if not (instance.win_id == current_win_id) then return end
 
     if instance.opts.kind == 'replace' then return end
 

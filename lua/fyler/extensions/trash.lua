@@ -62,7 +62,7 @@ function H.process_serially(actions, idx, done)
   end
 
   local action = actions[idx]
-  if action.name ~= 'trash' then
+  if not (action.name == 'trash') then
     H.process_serially(actions, idx + 1, done)
     return
   end

@@ -7,7 +7,7 @@ function util.abspath(...) return util.normpath(vim.fn.fnamemodify(util.joinpath
 util.expect = MiniTest.expect
 util.expect.match = MiniTest.new_expectation(
   'string matching',
-  function(str, pattern) return str:find(pattern) ~= nil end,
+  function(str, pattern) return not (str:find(pattern) == nil) end,
   function(str, pattern) return string.format('Pattern: %s\nObserved string: "%s"', vim.inspect(pattern), str) end
 )
 

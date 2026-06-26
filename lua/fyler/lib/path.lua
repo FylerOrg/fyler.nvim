@@ -70,7 +70,7 @@ end
 M.to_normalize = function(path)
   local is_unc = M.is_windows and (path:sub(1, 2) == '//' or path:sub(1, 2) == '\\\\')
   local normalized = vim.fs.normalize(path)
-  if is_unc and normalized:sub(1, 2) ~= '//' then normalized = '//' .. normalized:match('^/+(.*)') end
+  if is_unc and not (normalized:sub(1, 2) == '//') then normalized = '//' .. normalized:match('^/+(.*)') end
   if not M.is_windows then normalized = normalized:gsub('/+', '/') end
   return normalized
 end
