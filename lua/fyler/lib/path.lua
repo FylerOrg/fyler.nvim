@@ -50,7 +50,7 @@ end
 
 ---@nodiscard
 ---@return string
-M.to_dirname = function(path) return vim.fs.dirname(path) end
+M.to_dirname = function(path) return vim.fs.dirname(M.to_normalize(path)) end
 
 --- Normalizes a path for use as a table key.
 --- On case-insensitive systems (macOS, Windows), lowercases the path
@@ -68,11 +68,10 @@ end
 ---@nodiscard
 ---@return string
 M.to_normalize = function(path)
-  local is_unc = path:sub(1, 2) == '//' or path:sub(1, 2) == '\\\\'
+  local is_unc = M.is_windows and (path:sub(1, 2) == '//' or path:sub(1, 2) == '\\\\')
   local normalized = vim.fs.normalize(path)
-  if is_unc and normalized:sub(1, 2) ~= '//' and normalized:sub(1, 2) ~= '\\\\' then
-    if normalized:sub(1, 1) == '/' then return '//' .. normalized:sub(2) end
-  end
+  if is_unc and normalized:sub(1, 2) ~= '//' then normalized = '//' .. normalized:match('^/+(.*)') end
+  if not M.is_windows then normalized = normalized:gsub('/+', '/') end
   return normalized
 end
 

@@ -28,10 +28,12 @@ function M.store_register_fs_entry(fs_entry)
   local k = libpath.to_key(fs_entry.path)
   local id = M.store_path_id[k]
   if id then return id end
+
   fs_entry.id = M.store_next_id
   M.store_next_id = M.store_next_id + 1
   M.store[fs_entry.id] = fs_entry
   M.store_path_id[libpath.to_key(fs_entry.path)] = fs_entry.id
+
   return fs_entry.id
 end
 
@@ -60,6 +62,7 @@ function M.new(root_path, scheme)
         type = 'directory',
       }),
     }
+
     self:toggle(new_pseudo_root_path, true)
   end
 
@@ -74,6 +77,7 @@ function M.new(root_path, scheme)
 
   function instance:update(target_path, opts, update_callback)
     opts = opts or {}
+
     local update_target_node
     update_target_node = libasync.wrap(function(target_node, update_target_node_callback)
       local target_node_data = M.store[target_node.value]
@@ -84,17 +88,21 @@ function M.new(root_path, scheme)
           update_target_node_callback(target_node)
           return
         end
+
         target_node.children = {}
         vim.iter(entries):each(function(entry)
           local entry_node_value = M.store_path_id[libpath.to_key(entry.path)]
           if not entry_node_value then entry_node_value = M.store_register_fs_entry(entry) end
+
           target_node.children[entry.name] = { value = entry_node_value }
         end)
+
         update_target_node_callback(target_node)
       end)
     end)
     libasync.void(function()
       target_path = target_path or self.pseudo_root_path
+
       local segments = target_path == self.pseudo_root_path and {}
         or libpath.do_split(libpath.to_rel(self.pseudo_root_path, target_path))
       local target_node = self.root
@@ -104,7 +112,9 @@ function M.new(root_path, scheme)
           target_node = target_node.children[segment]
         end)
       end
+
       if opts.force or not target_node.children then target_node = update_target_node(target_node) end
+
       if opts.recursive and target_node.children then
         local stack = { target_node }
         while not vim.tbl_isempty(stack) do
@@ -118,41 +128,51 @@ function M.new(root_path, scheme)
                 child_node = update_target_node(child_node)
                 current_node.children[child_name] = child_node
               end
+
               table.insert(stack, child_node)
             end
           end
         end
       end
+
       update_callback(target_node)
     end)
   end
 
   function instance:walk(callback, opts)
     opts = opts or {}
+
     local target_path = opts.target_path
     if target_path then
       local relative = libpath.to_rel(self.pseudo_root_path, target_path)
       if not relative or relative == '' then return end
+
       if target_path == self.pseudo_root_path then
         callback(self.root, 0)
         return
       end
+
       local segments = libpath.do_split(relative)
       local node = self.root
       for _, segment in ipairs(segments) do
         if not node.children or not node.children[segment] then return end
         node = node.children[segment]
       end
+
       callback(node, #segments)
       return
     end
 
     local function rec(node, depth)
       if not node.value then return end
+
       local data = M.store[node.value]
       if not data then return end
+
       if opts.skip_hidden and libfs.is_hidden(data.path, opts.hidden_items) then return end
+
       callback(node, depth)
+
       if data.type == 'directory' and self.meta[libpath.to_key(data.path)] then
         if node.children then
           local children
@@ -160,11 +180,13 @@ function M.new(root_path, scheme)
             children = vim.tbl_values(node.children)
             table.sort(children, function(a, b)
               if not a.value or not b.value then return false end
+
               return libfs.sort(M.store[a.value], M.store[b.value])
             end)
           else
             children = vim.tbl_values(node.children)
           end
+
           for _, child in ipairs(children) do
             rec(child, depth + 1)
           end

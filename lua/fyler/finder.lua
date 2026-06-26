@@ -81,6 +81,7 @@ local Finder = {}
 H.buffer_name = function(instance)
   local scheme_name = instance.opts.scheme
   local pseudo_root_path = instance.state.pseudo_root_path
+
   return ('fyler-%s://%s'):format(scheme_name, pseudo_root_path)
 end
 
@@ -120,13 +121,14 @@ H.build_action_confirmation_ui = function(order, fs_actions, pseudo_root_path)
         },
       }
     end
-    table.insert(action_name_components, {
-      tag = 'text',
-      value = fs_action.name:gsub('^%l', string.upper),
-      hl = action_hl,
-    })
+
+    table.insert(
+      action_name_components,
+      { tag = 'text', value = fs_action.name:gsub('^%l', string.upper), hl = action_hl }
+    )
     table.insert(action_args_components, args_row)
   end
+
   local composed = libui.compose({
     tag = 'col',
     children = {
@@ -146,6 +148,7 @@ H.build_action_confirmation_ui = function(order, fs_actions, pseudo_root_path)
       },
     },
   })
+
   return composed.lines, composed.highlights
 end
 
@@ -167,6 +170,7 @@ H.build_action_dependency_graph = function(fs_actions, pseudo_root_path, errors)
       end
       current_node = current_node.children[splitted_path[i]]
     end
+
     current_node.value = current_node.value or {}
     table.insert(current_node.value, action)
   end)
@@ -242,15 +246,18 @@ H.build_fs_entry_ui = function(item)
   local id_part = string.format('/%0' .. math.ceil(math.log10(state.store_next_id)) .. 'd ', item.id)
   local children = {}
   local name_col = 0
+
   if #indent > 0 then
     table.insert(children, { tag = 'text', value = indent })
     name_col = name_col + #indent
   end
+
   if icon_char and #icon_char > 0 then
     table.insert(children, { tag = 'text', value = icon_char, hl = icon_hl })
     table.insert(children, { tag = 'text', value = ' ' })
     name_col = name_col + #icon_char + 1
   end
+
   table.insert(children, { tag = 'text', value = id_part })
   name_col = name_col + #id_part
   table.insert(children, {
@@ -258,6 +265,7 @@ H.build_fs_entry_ui = function(item)
     value = item.name,
     hl = item.type == 'directory' and 'FylerDirectoryName' or 'FylerNormal',
   })
+
   return children, name_col
 end
 
@@ -303,6 +311,7 @@ H.compute_fs_actions = function(instance, id_to_path, buf_lines)
           current_path = segment_path .. '/'
         end
       end
+
       if is_dir then table.insert(stack, { path = libpath.do_join(parent_path, name), depth = depth }) end
     end
   end)
@@ -386,6 +395,7 @@ H.chain_callbacks = function(cb_a, cb_b)
       cb_b()
     end
   end
+
   return cb_a or cb_b
 end
 
@@ -396,11 +406,13 @@ end
 ---@param errors string[]
 H.handle_action_pair = function(left, right, edge_add, errors)
   if H.build_fs_action_id(left) == H.build_fs_action_id(right) then return end
+
   if H.build_fs_action_id(left) > H.build_fs_action_id(right) then return end
 
   local P = { create = 1, delete = 2, copy = 3, move = 4 }
   local function sorted_pair()
     if P[left.name] < P[right.name] then return left, right end
+
     return right, left
   end
 
@@ -456,6 +468,7 @@ H.handle_action_pair = function(left, right, edge_add, errors)
     elseif first.dst == second.src then
       edge_add(first, second)
     end
+
     if second.dst == first.src then edge_add(second, first) end
   end
 end
@@ -481,7 +494,9 @@ H.new_instance = function(opts)
     opts = opts,
     state = state.new(opts.root_path, opts.scheme),
   }
+
   setmetatable(instance, { __index = Finder })
+
   return instance
 end
 
@@ -492,6 +507,7 @@ H.normalize_opts = function(opts)
   opts = opts or {}
   opts.root_path = libpath.to_normalize(opts.root_path or vim.fn.getcwd(-1, -1))
   opts.scheme = opts.scheme or 'file'
+
   return config.get_config(opts)
 end
 
@@ -508,8 +524,10 @@ H.parse_buf_line = function(buf_line)
   if id then
     local name = buf_line:match('/%d+ (.*)$')
     local id_int = tonumber(id, 10)
+
     return id_int, name, depth, vim.endswith(name, '/')
   end
+
   return nil, buf_line, depth, vim.endswith(buf_line, '/')
 end
 
@@ -587,11 +605,13 @@ function Finder:close()
       vim.bo[scratch].bufhidden = 'wipe'
       vim.api.nvim_win_set_buf(self.win_id, scratch)
     end
+
     pcall(vim.api.nvim_buf_delete, self.buf_id, { force = true })
   else
     pcall(vim.api.nvim_win_close, self.win_id, true)
     pcall(vim.api.nvim_win_call, self.win_id, function()
       if not util.window_is_valid(self.win_id) then return end
+
       pcall(vim.api.nvim_buf_delete, self.buf_id, { force = true })
     end)
   end
@@ -626,7 +646,7 @@ function Finder:follow(args)
   end
 
   local expand_target = target_path
-  if not self.state.scheme.fs_is_dir(target_path) then expand_target = vim.fs.dirname(target_path) end
+  if not self.state.scheme.fs_is_dir(target_path) then expand_target = libpath.to_dirname(target_path) end
 
   local relative = libpath.to_rel(root_path, expand_target)
   if not relative or #relative == 0 then
@@ -695,6 +715,7 @@ function Finder:mutate()
       local a1, a2 = fs_actions[cycled[1]], fs_actions[cycled[2]]
       if a1.name == 'move' and a2.name == 'move' and a1.src == a2.dst and a1.dst == a2.src then
         resolved = true
+
         local tmp = a1.src .. '.fyler_tmp'
         table.insert(fs_actions, { name = 'move', src = a1.src, dst = tmp })
         table.insert(fs_actions, { name = 'move', src = a2.src, dst = a1.src })
@@ -875,8 +896,9 @@ function Finder:open()
     buf_was_unloaded = true
     vim.schedule(function()
       if buf_was_unloaded then
-        self.win_id = nil
         extensions.run_hook('finder_close_post', self)
+
+        self.win_id = nil
         self._refresh_count = nil
         self._pending_refresh = nil
       end
@@ -890,8 +912,9 @@ function Finder:open()
 
   au('BufWipeout', function()
     buf_was_unloaded = false
-    self.win_id = nil
     extensions.run_hook('finder_close_post', self)
+
+    self.win_id = nil
     self._refresh_count = nil
     self._pending_refresh = nil
   end, 'Clean up on buffer wipeout')
@@ -903,15 +926,18 @@ function Finder:open()
   if self.opts.bound_cursor then
     au('CursorMoved', function()
       if not util.window_is_valid(self.win_id) then return end
+
       local line = vim.api.nvim_get_current_line()
       local _, id_end = line:find('/%d+ ')
       if not id_end then return end
+
       local pos = vim.api.nvim_win_get_cursor(self.win_id)
       if pos[2] < id_end then vim.api.nvim_win_set_cursor(self.win_id, { pos[1], id_end }) end
     end, 'Ensure cursor boundary')
   end
 
   vim.cmd.tcd({ args = { vim.fn.fnameescape(self.opts.root_path) }, mods = { silent = true } })
+
   local target_path = vim.fn.bufname('#')
   if #target_path > 0 and self.opts.follow_current_file then
     self:follow({ target_path = target_path, force = true })
@@ -1027,7 +1053,7 @@ function Finder:shrink(args)
   if not node_data then return end
 
   if args.parent then
-    local parent_path = vim.fs.dirname(node_data.path)
+    local parent_path = libpath.to_dirname(node_data.path)
     if parent_path == self.state.pseudo_root_path then return end
 
     local parent_node
@@ -1068,6 +1094,7 @@ function Finder:toggle_ui(args)
           dict[k] = not v
         end
       end
+
       toggle_dict(self.cache.ui.hidden_items.switches)
       toggle_dict(self.cache.ui.hidden_items.patterns)
     end
@@ -1081,10 +1108,11 @@ function Finder:visit(args)
   args = args or {}
 
   if args.parent then
-    args.path = vim.fs.dirname(self.state.pseudo_root_path)
+    args.path = libpath.to_dirname(self.state.pseudo_root_path)
   elseif args.cursor then
     local node_data = M.parse_cursor_line(self)
     if not (node_data and node_data.type == 'directory') then return end
+
     args.path = node_data.path
   else
     args.path = args.path or self.state.root_path
@@ -1096,19 +1124,26 @@ function Finder:visit(args)
   -- renaming the buffer creates another buffer (don't know why?)
   local old_buf_name = H.buffer_name(self)
   self.state:change_pseudo_root(args.path)
+
   vim.cmd.tcd({ args = { vim.fn.fnameescape(args.path) }, mods = { silent = true } })
   vim.api.nvim_buf_set_name(self.buf_id, H.buffer_name(self))
+
   local old_buf_id = vim.fn.bufnr('^' .. old_buf_name .. '$')
   if util.buffer_is_valid(old_buf_id) then vim.api.nvim_buf_delete(old_buf_id, { force = true }) end
+
   self:refresh({ recursive = true })
 end
 
 M.instance_get = function(tab_id, opts)
-  tab_id = tab_id or vim.api.nvim_get_current_tabpage()
   opts = H.normalize_opts(opts)
+
+  tab_id = tab_id or vim.api.nvim_get_current_tabpage()
   if instances[tab_id] and vim.deep_equal(instances[tab_id].opts, opts) then return instances[tab_id] end
+
   if instances[tab_id] then instances[tab_id]:close() end
+
   instances[tab_id] = H.new_instance(opts)
+
   return instances[tab_id]
 end
 
@@ -1116,8 +1151,10 @@ end
 ---@return fyler.Finder|nil
 M.instance_get_or_nil = function(tab_id)
   tab_id = tab_id or vim.api.nvim_get_current_tabpage()
+
   local inst = instances[tab_id]
   if inst and util.window_is_valid(inst.win_id) and util.buffer_is_valid(inst.buf_id) then return inst end
+
   return nil
 end
 
@@ -1127,10 +1164,13 @@ end
 ---@nodiscard
 M.parse_cursor_line = function(instance)
   if not util.buffer_is_valid(instance.buf_id) then return end
+
   local buf_line = vim.api.nvim_buf_call(instance.buf_id, function() return vim.api.nvim_get_current_line() end)
   local id = buf_line:match('(%d+)')
   if not id then return end
+
   local id_int = tonumber(id, 10)
+
   return state.store[id_int]
 end
 
@@ -1144,8 +1184,10 @@ M.window_goto_suitable = function(instance, path)
 
   local is_suitable = function(winid)
     if is_popup(winid) then return false end
+
     local bufnr = vim.api.nvim_win_get_buf(winid)
-    return vim.bo[bufnr].filetype ~= 'fyler_finder'
+
+    return not (vim.bo[bufnr].filetype == 'fyler_finder')
   end
 
   local bufnr = vim.fn.bufnr(path)
@@ -1166,6 +1208,7 @@ M.window_goto_suitable = function(instance, path)
   local initial_win = vim.api.nvim_get_current_win()
   while attempts < 5 do
     if is_suitable(vim.api.nvim_get_current_win()) then return end
+
     vim.cmd.wincmd('w')
     attempts = attempts + 1
   end

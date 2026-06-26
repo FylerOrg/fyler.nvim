@@ -120,7 +120,7 @@ end
 
 T['to_dirname returns dirname for root path'] = function()
   n.lua([[_G.path = require('fyler.lib.path')]])
-  eq(n.lua_get('_G.path.to_dirname("/home/user/")'), '/home/user')
+  eq(n.lua_get('_G.path.to_dirname("/home/user/")'), '/home')
 end
 
 T['to_rel computes relative path within project'] = function()

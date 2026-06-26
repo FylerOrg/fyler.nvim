@@ -36,13 +36,13 @@ local H = {}
 function H.repo_root(path)
   if repo_root_cache[path] then return repo_root_cache[path] end
 
-  local dir = vim.fs.dirname(path)
+  local dir = libpath.to_dirname(path)
   while #dir > 0 do
     if uv.fs_stat(libpath.do_join(dir, '.git')) then
       repo_root_cache[path] = dir
       return dir
     end
-    local parent = vim.fs.dirname(dir)
+    local parent = libpath.to_dirname(dir)
     if parent == dir then break end
     dir = parent
   end
@@ -92,11 +92,11 @@ end
 function H.propagate_to_parents(statuses)
   for path, xy in pairs(statuses) do
     local xy_prio = propagate_priority[xy] or 0
-    local dir = vim.fs.dirname(path)
+    local dir = libpath.to_dirname(path)
     while #dir > 0 do
       local existing = statuses[dir]
       if not existing or xy_prio > (propagate_priority[existing] or 0) then statuses[dir] = xy end
-      local parent = vim.fs.dirname(dir)
+      local parent = libpath.to_dirname(dir)
       if parent == dir then break end
       dir = parent
     end
