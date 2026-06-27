@@ -1,91 +1,88 @@
-local path_doc = vim.fs.normalize(('%s/doc/fyler.txt'):format(vim.fn.getcwd()))
-local path_readme = vim.fs.normalize(('%s/README.md'):format(vim.fn.getcwd()))
-
-local lines = vim.fn.readfile(path_doc)
-
-local section_headers = {
-  introduction = 'INTRODUCTION',
-  requirements = 'REQUIREMENTS',
-  usage = 'USAGE',
-  setup = 'SETUP',
+local FORMATTING = {
+  heading_base = 2,
+  strip_modeline = true,
+  strip_separators = true,
+  convert_links = true,
+  indentation = 2,
 }
 
-local function parse_sections(lines)
+---@param lines string[]
+---@return table[]
+local function parse_vimdoc(lines)
   local sections = {}
-  local tag, current, in_code
+  local current = { lines = {} }
 
   for _, line in ipairs(lines) do
     if line:match('^%-%-%-%-') then
-      if tag and current then sections[tag] = current end
-      tag, current, in_code = nil, nil, nil
-    else
-      local found = line:match('%*fyler%.([%w-]+)%*')
-      if found and not tag then
-        tag = found
-        current = { fragments = {} }
-      elseif current then
-        local lang = line:match('^>(%w+)$')
-        if lang then
-          in_code = { lang = lang, lines = {} }
-          table.insert(current.fragments, in_code)
-        elseif line == '<' then
-          in_code = nil
-        elseif in_code then
-          table.insert(in_code.lines, line)
-        else
-          table.insert(current.fragments, { text = line })
-        end
+      if current and current.tag then table.insert(sections, current) end
+      current = { lines = {} }
+    elseif current then
+      table.insert(current.lines, line)
+      if not current.tag then
+        local tag = line:match('^%s*%*([%w%.%-_]+)%*%s*$')
+        if tag then current.tag = tag end
+      end
+      if not current.title then
+        local title = line:match('^(.+)%~$')
+        if title and #vim.trim(title) > 0 then current.title = vim.trim(title) end
       end
     end
   end
 
-  if tag and current then sections[tag] = current end
+  if current and current.tag then table.insert(sections, current) end
+
   return sections
 end
 
-local function render_section(sections, tag)
-  local section = sections[tag]
-  if not section then return '' end
-
+---@param section { tag: string, title: string|nil, lines: string[] }
+---@return string
+local function render_section(section)
   local result = {}
+  local in_code = false
+  local escaped_tag = vim.pesc(section.tag)
+  local tag_pattern = '^%s*%*' .. escaped_tag .. '%*%s*$'
 
-  for _, frag in ipairs(section.fragments) do
-    if frag.lines then
-      table.insert(result, '```' .. frag.lang)
-      for _, cline in ipairs(frag.lines) do
-        table.insert(result, cline:sub(3))
-      end
+  for _, line in ipairs(section.lines) do
+    if line:match(tag_pattern) then
+    elseif FORMATTING.strip_separators and line:match('^%-%-%-%-') then
+    elseif in_code and line:match('^<%s*$') then
       table.insert(result, '```')
+      in_code = false
+    elseif not in_code and line:match('^>(%w*)%s*$') then
+      local lang = line:match('^>(%w*)%s*$')
+      table.insert(result, '```' .. lang)
+      in_code = true
+    elseif in_code then
+      table.insert(result, line:sub(FORMATTING.indentation + 1))
+    elseif FORMATTING.strip_modeline and line:match('^%s*vim:') then
+    elseif line:match('^(.+)%~$') then
+      local title = vim.trim(line:match('^(.+)%~$'))
+      if #title > 0 then table.insert(result, string.rep('#', FORMATTING.heading_base) .. ' ' .. title) end
     else
-      local line = frag.text:gsub('%s+$', ''):gsub('^ vim:.*$', '')
-      if #line == 0 then
-        table.insert(result, '')
-      else
-        local raw = line:gsub('~$', ''):gsub('%s+$', '')
-        if line:match('^%u[%u%l ]+%~$') then
-          if raw == section_headers[tag] then
-            local title = raw:gsub('%a+', function(w) return w:sub(1, 1) .. w:sub(2):lower() end)
-            table.insert(result, '## ' .. title)
-          else
-            table.insert(result, '**' .. raw .. '**')
-          end
-        else
-          line = line:gsub('|([^|]+)|', function(link) return link:match('^https?://') and link or link end)
-          table.insert(result, line)
-        end
-      end
+      local text = line
+      if FORMATTING.convert_links then text = text:gsub('|([^|]+)|', '%1') end
+      text = text.gsub(text, '%s+$', '')
+      table.insert(result, text)
     end
   end
 
   return table.concat(result, '\n')
 end
 
-local sections = parse_sections(lines)
+local sections = parse_vimdoc(vim.fn.readfile('doc/fyler.txt'))
+
+local function render(key)
+  local tag = 'fyler.' .. key
+  for _, s in ipairs(sections) do
+    if s.tag == tag then return render_section(s) end
+  end
+  return ''
+end
 
 local template = [[
 <div align="center">
   <h1>Fyler.nvim</h1>
-  <table>
+<table>
     <tr>
       <td>
         <strong>A file manager for <a href="https://neovim.io">Neovim</a></strong>
@@ -103,7 +100,7 @@ local template = [[
 
 {{introduction}}
 {{requirements}}
-## Installation
+## INSTALLATION
 
 ### [lazy.nvim](https://github.com/folke/lazy.nvim)
 
@@ -123,16 +120,15 @@ require('mini.deps').add('FylerOrg/fyler.nvim')
 vim.pack.add({ 'https://github.com/FylerOrg/fyler.nvim' })
 ```
 
-{{setup}}
 {{usage}}
-## License
+## LICENSE
 
 Apache 2.0. See [LICENSE](LICENSE).
 
 > [!NOTE]
 > Run `:help fyler.nvim` OR visit [wiki pages](https://github.com/FylerOrg/fyler.nvim/wiki) for more detailed explanation and live showcase.
 
-### Credits
+### CREDITS
 
 - [**GrugFar**](https://github.com/MagicDuck/grug-far.nvim)
 - [**Mini.files**](https://github.com/nvim-mini/mini.files)
@@ -153,7 +149,7 @@ Apache 2.0. See [LICENSE](LICENSE).
   />
 </a>]]
 
-local content = template:gsub('{{(%w+)}}', function(key) return render_section(sections, key) end)
+local content = template:gsub('{{(%w+)}}', render)
 
-vim.fn.writefile(vim.split(content, '\n'), path_readme)
+vim.fn.writefile(vim.split(content, '\n'), 'README.md')
 print('README.md has been generated successfully')

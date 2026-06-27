@@ -99,26 +99,36 @@ H.setup_autocmds = function()
     vim.api.nvim_create_autocmd(event, { group = gr, pattern = pattern, callback = callback, desc = desc })
   end
 
+  -- Ensure highlight groups follow the current theme.
   au('ColorScheme', '*', H.setup_highlights, 'Ensure colors')
 
+  -- Tracking prior window which could have many use-cases but currently
+  -- using it for find and goto a suitable window.
   au('WinEnter', '*', function()
     if vim.bo.filetype == 'fyler_finder' then return end
+
     local win_config = vim.api.nvim_win_get_config(vim.api.nvim_get_current_win())
     if win_config and (#win_config.relative > 0 or win_config.external) then return end
+
     util.window_set_prior(vim.api.nvim_get_current_tabpage(), vim.api.nvim_get_current_win())
   end, 'Track prior window')
 
+  -- Preventing user from opening any file into split and floating style
+  -- window and redirect to a suitable window.
   au('BufEnter', '*', function()
     if vim.bo.filetype == 'fyler_finder' then return end
 
     local prior_buf_id = vim.fn.bufnr('#')
     if prior_buf_id < 1 then return end
+
     if not (vim.bo[prior_buf_id].filetype == 'fyler_finder') then return end
 
     local current_tab_id = vim.api.nvim_get_current_tabpage()
     local current_win_id = vim.api.nvim_get_current_win()
+
     local instance = finder.instance_get_or_nil(current_tab_id)
     if not instance then return end
+
     if not (instance.win_id == current_win_id) then return end
 
     if instance.opts.kind == 'replace' then return end
@@ -136,22 +146,28 @@ H.setup_autocmds = function()
     vim.cmd('silent! autocmd! FileExplorer *')
     vim.cmd('autocmd VimEnter * ++once silent! autocmd! FileExplorer *')
 
+    -- TODO: supports all schemes
+    -- Hijack directory buffers similar to |netrw|.
     au('BufEnter', '*', function()
-      -- TODO: supports all schemes
       local buf_name = vim.api.nvim_buf_get_name(0)
       if vim.fn.isdirectory(buf_name) == 0 then return end
+
       vim.api.nvim_buf_delete(0, { force = true })
       vim.schedule_wrap(Fyler.open)({ root_path = buf_name })
     end, 'Track directory edit')
   end
 
+  -- Follow current file inside the tree if possible.
   if config.follow_current_file then
     au('BufEnter', '*', function()
       if vim.bo.filetype == 'fyler_finder' then return end
+
       local buf_name = vim.api.nvim_buf_get_name(0)
       if not buf_name or buf_name == '' then return end
+
       local instance = finder.instance_get_or_nil()
       if not instance then return end
+
       instance:follow({ target_path = buf_name })
     end, 'Follow current file')
   end

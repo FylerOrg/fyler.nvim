@@ -28,9 +28,6 @@ local mini_doc_opts = {
   },
 }
 
-local doc_files = {
-  'lua/fyler.lua',
-  'lua/fyler/config.lua',
-}
+local doc_files = { 'lua/fyler.lua', 'lua/fyler/config.lua', 'lua/fyler/extensions.lua' }
 
 require('mini.doc').generate(doc_files, 'doc/fyler.txt', mini_doc_opts)

@@ -1,6 +1,6 @@
 <div align="center">
   <h1>Fyler.nvim</h1>
-  <table>
+<table>
     <tr>
       <td>
         <strong>A file manager for <a href="https://neovim.io">Neovim</a></strong>
@@ -16,17 +16,17 @@
 </div>
 <img alt="Image" src="https://github.com/user-attachments/assets/aecb2d68-bf7b-46f1-9f4a-679b4aed0b52" />
 
-## Introduction
+## INTRODUCTION
 
 Fyler.nvim is oil.nvim inspired file manager plugin for neovim which can
 manipulate file system like a neovim buffer and provide a proper file-tree
 representation of items.
 
-## Requirements
+## REQUIREMENTS
 
 - Neovim >= 0.11
 
-## Installation
+## INSTALLATION
 
 ### [lazy.nvim](https://github.com/folke/lazy.nvim)
 
@@ -46,100 +46,7 @@ require('mini.deps').add('FylerOrg/fyler.nvim')
 vim.pack.add({ 'https://github.com/FylerOrg/fyler.nvim' })
 ```
 
-## Setup
-
-```lua
-local fyler = require('fyler')
-
-fyler.setup({
-  -- Whether to skip confirmation for "simple" mutations.
-  -- A simple mutation has at most:
-  -- - 1 copy operation
-  -- - 1 delete operation
-  -- - 1 move operation
-  -- - 5 create operations
-  auto_confirm_simple_mutation = false,
-  -- Restricts cursor from moving outside editable region
-  bound_cursor = true,
-  -- Buffer-local options applied to the finder buffer (see: nvim_set_option_value)
-  buf_opts = {},
-  -- Follow current file
-  follow_current_file = true,
-  -- List of extensions to enable (e.g., 'git', 'trash', 'watcher')
-  extensions = {},
-  -- Event hooks for custom behavior (on_highlight, on_delete, on_rename)
-  hooks = {},
-  -- External integrations (e.g., icon provider)
-  integrations = {},
-  -- Window-local options applied to the finder window (see: nvim_set_option_value)
-  win_opts = {},
-  -- Buffer kind to use globally.
-  kind = 'replace',
-  -- Per-kind preset overrides. Each preset can contain mappings, buf_opts,
-  -- win_opts, and any window layout fields (width, height, border, etc.).
-  kind_presets = {
-    floating = {
-      -- Border style (see: :h winborder)
-      border = 'single',
-      -- Size of buffer:
-      -- - string with '%' for relative (e.g. '70%')
-      -- - number for absolute
-      height = '80%',
-      mappings = { n = { ['<CR>'] = { action = 'select', args = { close = true, pick = false } } } },
-      width = '60%',
-      -- Horizontal alignment: 'start' | 'center' | 'end'
-      col = 'center',
-      -- Vertical alignment: 'start' | 'center' | 'end'
-      row = 'center',
-    },
-    replace = {
-      mappings = { n = { ['<CR>'] = { action = 'select', args = { close = true, pick = false } } } },
-    },
-    split_above = { height = '50%' },
-    split_above_all = { height = '50%' },
-    split_below = { height = '50%' },
-    split_below_all = { height = '50%' },
-    split_left = { width = '25%' },
-    split_left_most = { width = '25%' },
-    split_right = { width = '25%' },
-    split_right_most = { width = '25%' },
-  },
-  -- Key mappings organized by mode (see: fyler.Mapping)
-  mappings = {
-    n = {
-      ['-'] = { action = 'visit', args = { parent = true } },
-      ['.'] = { action = 'visit', args = { cursor = true } },
-      ['<BS>'] = { action = 'shrink', args = { parent = true } },
-      ['<C-R>'] = { action = 'refresh', args = { recursive = true, force = true } },
-      ['<C-S>'] = { action = 'select', args = { split = true } },
-      ['<C-T>'] = { action = 'select', args = { tabedit = true } },
-      ['<C-V>'] = { action = 'select', args = { vsplit = true } },
-      ['<CR>'] = { action = 'select', args = { pick = true } },
-      ['='] = { action = 'visit' },
-      ['g.'] = { action = 'toggle_ui', args = { 'hidden_items' } },
-      ['gi'] = { action = 'toggle_ui', args = { 'indent_guides' } },
-      ['q'] = { action = 'close' },
-    },
-  },
-  -- UI configuration
-  ui = {
-    hidden_items = {
-      -- Toggleable pre-defined switches (e.g. 'dotfiles' to hide files starting with a dot).
-      switches = { 'dotfiles' },
-      -- Toggleable patterns (Lua patterns matched against the full path).
-      patterns = {},
-      -- Always visible items matching these patterns, even if they would normally be hidden.
-      always_visible = {},
-      -- Always hide items matching these patterns, even if they would normally be visible.
-      always_hidden = {},
-    },
-    -- Whether to draw indent guides at each depth level.
-    indent_guides = false,
-  },
-})
-```
-
-## Usage
+## USAGE
 
 Open Fyler using the `:Fyler` command:
 
@@ -175,14 +82,14 @@ vim.keymap.set(
 )
 ```
 
-## License
+## LICENSE
 
 Apache 2.0. See [LICENSE](LICENSE).
 
 > [!NOTE]
 > Run `:help fyler.nvim` OR visit [wiki pages](https://github.com/FylerOrg/fyler.nvim/wiki) for more detailed explanation and live showcase.
 
-### Credits
+### CREDITS
 
 - [**GrugFar**](https://github.com/MagicDuck/grug-far.nvim)
 - [**Mini.files**](https://github.com/nvim-mini/mini.files)
