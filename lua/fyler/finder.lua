@@ -349,7 +349,9 @@ end
 ---@private
 H.finish_refresh = function(instance)
   if instance._view.lnum then
-    vim.fn.winrestview({ lnum = instance._view.lnum, col = 0 })
+    if util.window_is_valid(instance.win_id) then
+      vim.api.nvim_win_call(instance.win_id, function() vim.fn.winrestview({ lnum = instance._view.lnum, col = 0 }) end)
+    end
     instance._view = {}
   end
 
