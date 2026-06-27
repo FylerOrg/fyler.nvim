@@ -368,4 +368,42 @@ T['Finder with kind']['can handle chain-dependencies in file system manipulation
   helper.expect.equality(vim.fn.readfile(helper.joinpath(tmpdir, 'd-file')), { 'ROOT/c-file' })
 end
 
+T['follow_current_file does not move cursor in unfocused windows'] = function()
+  local tmpdir = helper.get_tmpdir('data', { 'dir/', 'dir/a-file', 'dir/b-file', 'dir/c-file' })
+  n.fwd_lua('require("fyler").setup')({ follow_current_file = true })
+  n.fwd_lua('require("fyler").open')({ kind = 'split_left_most', root_path = tmpdir })
+  vim.uv.sleep(50)
+
+  local deep_file = helper.joinpath(tmpdir, 'dir', 'c-file')
+
+  -- Open a non-finder window holding a 10-line buffer, park the cursor on line 1,
+  -- focus it, then queue a follow() targeting a deep tree entry. The follow refresh
+  -- restores the saved view on a later tick (vim.schedule); by then this non-finder
+  -- window is focused. The restore must target the finder window, never this one.
+  n.lua(
+    [[
+    local finder = require('fyler.finder')
+    local instance = assert(finder.instance_get_or_nil(), 'finder instance missing')
+
+    vim.cmd('botright vsplit')
+    local win = vim.api.nvim_get_current_win()
+    local buf = vim.api.nvim_create_buf(false, true)
+    local lines = {}
+    for i = 1, 10 do lines[i] = 'line ' .. i end
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, lines)
+    vim.api.nvim_win_set_buf(win, buf)
+    vim.api.nvim_win_set_cursor(win, { 1, 0 })
+    vim.api.nvim_set_current_win(win)
+
+    _G.obs_win = win
+    instance:follow({ target_path = ..., force = true })
+  ]],
+    { deep_file }
+  )
+
+  vim.uv.sleep(50)
+
+  helper.expect.equality(n.lua_get('vim.api.nvim_win_get_cursor(_G.obs_win)[1]'), 1)
+end
+
 return T
