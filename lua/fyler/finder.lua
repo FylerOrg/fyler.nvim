@@ -1,12 +1,13 @@
 local config = Fyler.import('fyler.config')
 local extensions = Fyler.import('fyler.extensions')
-local icon = Fyler.import('fyler.integrations.icon')
+local integration_icon = Fyler.import('fyler.integrations.icon')
 local input = Fyler.import('fyler.input')
 local libfs = Fyler.import('fyler.lib.fs')
 local libpath = Fyler.import('fyler.lib.path')
 local libui = Fyler.import('fyler.lib.ui')
 local state = Fyler.import('fyler.state')
 local util = Fyler.import('fyler.util')
+local integration_window_picker = Fyler.import('fyler.integrations.window_picker')
 
 ---@class fyler.FSEntry
 ---@field path string
@@ -241,7 +242,7 @@ end
 ---@return table, integer
 H.build_fs_entry_ui = function(item)
   local entry_state = item.type == 'directory' and { expanded = item.expanded } or nil
-  local icon_char, icon_hl = icon.get(item.type, item.path, entry_state)
+  local icon_char, icon_hl = integration_icon.get(item.type, item.path, entry_state)
   local indent = item.depth > 0 and string.rep('  ', item.depth) or ''
   local id_part = string.format('/%0' .. math.ceil(math.log10(state.store_next_id)) .. 'd ', item.id)
   local children = {}
@@ -1031,7 +1032,7 @@ function Finder:select(args)
 
     local pick_succeeded = false
     if args.pick then
-      local target_win = input.get_selected_window()
+      local target_win = integration_window_picker.get_selected_window()
       if target_win then
         pick_succeeded = true
         vim.api.nvim_set_current_win(target_win)

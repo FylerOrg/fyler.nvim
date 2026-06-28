@@ -135,6 +135,14 @@ local M = {}
 ---     -- Use Nerd Font icons
 ---     icon = 'vim_nerdfont'
 ---   }
+---   {
+---     -- Use a custom function as the window picker.
+---     -- The function should return a window id or nil.
+---     -- Falls back to the builtin picker when not set.
+---     window_picker = function()
+---       return require('snacks').picker.util.pick_win()
+---     end,
+---   }
 --- <
 ---
 --- - `win_opts` is a table value which determine window local options.
