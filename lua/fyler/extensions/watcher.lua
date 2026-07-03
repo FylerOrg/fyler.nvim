@@ -17,7 +17,7 @@ function H.start_handle(buf_id, dir_path, on_event)
   local handle = uv.new_fs_event()
   if not handle then return end
 
-  local ok = handle:start(dir_path, { watch_entry = true }, function(err, filename, status)
+  local ok = handle:start(dir_path, {}, function(err, filename, status)
     if err then return end
     on_event(filename, status)
   end)
@@ -113,7 +113,7 @@ extensions.register({
           local is_git_dir = dir_path:match('/%.git$')
           H.start_handle(buf_id, dir_path, function(filename, status)
             if is_git_dir and filename and not (filename == 'index') then return end
-            if not is_git_dir and not (status and status.rename) then return end
+            if not is_git_dir and not (status and (status.rename or status.change)) then return end
 
             if is_git_dir then
               state.pending_refresh = { force = true, recursive = true }
