@@ -112,7 +112,7 @@ extensions.register({
         if not state.handles[dir_path] then
           local is_git_dir = dir_path:match('/%.git$')
           H.start_handle(buf_id, dir_path, function(filename, status)
-            if is_git_dir and filename and not (filename == 'index') then return end
+            if is_git_dir and filename and not (filename == 'index' or filename == 'index.lock') then return end
             if not is_git_dir and not (status and (status.rename or status.change)) then return end
 
             if is_git_dir then
@@ -126,7 +126,11 @@ extensions.register({
             state.timer:start(cfg.debounce_ms, 0, function()
               vim.schedule(function()
                 if not watch_state[buf_id] then return end
+                if vim.bo[buf_id].modified then return end
+
                 local pending = state.pending_refresh
+                state.pending_refresh = nil
+
                 pcall(function() instance:refresh(pending) end)
               end)
             end)

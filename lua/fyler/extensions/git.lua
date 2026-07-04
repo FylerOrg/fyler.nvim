@@ -21,6 +21,8 @@ local default_icons = {
   [' M'] = { icon = '*', hl = 'FylerGitModified' },
   ['M '] = { icon = '+', hl = 'FylerGitStaged' },
   ['MM'] = { icon = '+', hl = 'FylerGitStaged' },
+  ['A '] = { icon = '+', hl = 'FylerGitStaged' },
+  ['AM'] = { icon = '+', hl = 'FylerGitStaged' },
   ['??'] = { icon = '?', hl = 'FylerGitUntracked' },
   [' D'] = { icon = '-', hl = 'FylerGitDeleted' },
   ['D '] = { icon = '-', hl = 'FylerGitStaged' },
