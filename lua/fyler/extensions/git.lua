@@ -195,12 +195,13 @@ extensions.register({
     config.extensions.git = vim.tbl_deep_extend('force', { icons = vim.deepcopy(default_icons), inline = true }, opts)
   end,
   hooks = {
-    finder_refresh_post = function(inst, visible, hl_ns, lines, args)
+    finder_refresh_post = function(inst, visible, _, lines, args)
       local cfg = require('fyler.config').DATA.extensions.git
       if not cfg.enabled then return end
 
       refresh_count = refresh_count + 1
       local current_count = refresh_count
+      local git_ns = vim.api.nvim_create_namespace('FylerGitBuf' .. inst.buf_id)
 
       local gc = H.git_col(lines)
       local function apply(i, item, stat)
@@ -211,7 +212,7 @@ extensions.register({
             pcall(
               vim.api.nvim_buf_set_extmark,
               inst.buf_id,
-              hl_ns,
+              git_ns,
               i - 1,
               item._name_col + #item.name,
               { virt_text = { { icon, hl } }, hl_mode = 'combine' }
@@ -220,7 +221,7 @@ extensions.register({
             pcall(
               vim.api.nvim_buf_set_extmark,
               inst.buf_id,
-              hl_ns,
+              git_ns,
               i - 1,
               0,
               { virt_text = { { icon, hl } }, virt_text_win_col = gc, hl_mode = 'combine' }
@@ -230,20 +231,29 @@ extensions.register({
         pcall(
           vim.api.nvim_buf_set_extmark,
           inst.buf_id,
-          hl_ns,
+          git_ns,
           i - 1,
           item._name_col,
           { hl_group = hl, end_line = i - 1, end_col = item._name_col + #item.name, hl_mode = 'combine' }
         )
       end
+
+      local function render(statuses)
+        pcall(vim.api.nvim_buf_clear_namespace, inst.buf_id, git_ns, 0, -1)
+        for i, item in ipairs(visible) do
+          local stat = statuses[item.path]
+          if stat then apply(i, item, stat) end
+        end
+      end
+
+      render(inst.cache.git_statuses or {})
+
       H.statuses_async(visible, args and args.force, function(statuses)
         if current_count == refresh_count then
           H.propagate_to_parents(statuses)
           H.store_known_roots()
-          for i, item in ipairs(visible) do
-            local stat = statuses[item.path]
-            if stat then apply(i, item, stat) end
-          end
+          inst.cache.git_statuses = statuses
+          render(statuses)
         end
       end)
     end,
