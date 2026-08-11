@@ -113,6 +113,17 @@ local M = {}
 ---   and `on_rename(old_path, new_path)` when a file is renamed.
 ---   for example:
 ---
+---   The following highlight groups are available for customization via
+---   `on_highlight` or by setting them directly in your colorscheme:
+---   - `FylerDirectoryIcon` - highlight for directory icons (default: `Directory` fg)
+---   - `FylerDirectoryName` - highlight for directory names (default: `Directory` fg)
+---   - `FylerIndentGuide` - highlight for indent guide characters
+---   - `FylerNormal` - highlight for regular file names
+---   - `FylerFloat` - highlight for floating window background
+---   - `FylerFloatBorder` - highlight for floating window border
+---   - `FylerFloatTitle` - highlight for floating window title
+---   - `FylerWinpickMarker` - highlight for window picker marker
+---
 --- >lua
 ---   {
 ---     -- Called when a file is deleted
@@ -122,6 +133,12 @@ local M = {}
 ---     -- Called when a file is renamed
 ---     on_rename = function(old_path, new_path)
 ---       -- custom rename logic
+---     end,
+---     -- Called during highlight setup; modify the highlights table to
+---     -- customize colors. Changes take effect immediately and on ColorScheme.
+---     on_highlight = function(highlights, palette)
+---       highlights.FylerDirectoryIcon = { fg = '#89b4fa' }
+---       highlights.FylerDirectoryName = { fg = '#89b4fa' }
 ---     end,
 ---   }
 --- <

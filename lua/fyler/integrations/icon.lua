@@ -15,7 +15,8 @@ H.mini_icons = function(fs_type, fs_path, state)
   local category = st[fs_type] and fs_type or 'file'
   local icon, hl = mini_icons.get(category, fs_path)
   if fs_type == 'directory' then
-    if state and state.expanded then return '󰝰', hl end
+    if state and state.expanded then return '󰝰', 'FylerDirectoryIcon' end
+    return icon, 'FylerDirectoryIcon'
   end
   return icon, hl
 end
@@ -40,13 +41,14 @@ end
 ---@param fs_path string
 ---@param state { expanded: boolean }|nil
 ---@return string
+---@return string|nil
 H.vim_nerdfont = function(fs_type, fs_path, state)
   assert(vim.fn.exists('*nerdfont#find'), 'vim-nerdfont are not installed or not loaded')
   if fs_type == 'directory' then
-    if state and state.expanded then return '' end
-    return ''
+    if state and state.expanded then return '', 'FylerDirectoryIcon' end
+    return '', 'FylerDirectoryIcon'
   end
-  return vim.fn['nerdfont#find'](fs_path)
+  return vim.fn['nerdfont#find'](fs_path), nil
 end
 
 ---@param fs_type string
