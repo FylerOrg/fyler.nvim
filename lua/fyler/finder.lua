@@ -22,6 +22,7 @@ local integration_window_picker = Fyler.import('fyler.integrations.window_picker
 ---@field private _pending_refresh table|nil
 ---@field private _current_refresh_args table|nil
 ---@field private _id_to_line table|nil
+---@field private _origin_buf_id integer|nil
 ---@field buf_id integer|nil
 ---@field cache table
 ---@field opts fyler.FinderOpts
@@ -83,6 +84,21 @@ H.buffer_name = function(instance)
   local pseudo_root_path = instance.state.pseudo_root_path
 
   return ('fyler-%s://%s'):format(scheme_name, pseudo_root_path)
+end
+
+---@private
+---@param name string
+---@return integer
+---@nodiscard
+H.find_buffer_by_exact_name = function(name)
+  for _, buf_id in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_valid(buf_id) then
+      local ok, buf_name = pcall(vim.api.nvim_buf_get_name, buf_id)
+      if ok and buf_name == name then return buf_id end
+    end
+  end
+
+  return -1
 end
 
 ---@private
@@ -489,6 +505,7 @@ H.new_instance = function(opts)
     _refresh_count = nil,
     _pending_refresh = nil,
     _id_to_line = nil,
+    _origin_buf_id = nil,
     cache = {
       ui = {
         indent_guides = opts.ui.indent_guides,
@@ -602,15 +619,37 @@ function Finder:close()
   if not util.window_is_valid(self.win_id) then return end
 
   if self.opts.kind == 'replace' then
-    local alt_buf = vim.api.nvim_win_call(self.win_id, function() return vim.fn.bufnr('#') end)
-    if vim.api.nvim_buf_is_valid(alt_buf) then
-      vim.api.nvim_win_set_buf(self.win_id, alt_buf)
+    -- Prefer the origin buffer captured at `open()` time. `#` cannot be
+    -- trusted here because `visit()` renames the finder buffer, which
+    -- clobbers `#` with an unlisted ghost (since fixed up in `visit()`,
+    -- but still fragile across Neovim versions and edge cases).
+    local target_buf = -1
+    if
+      self._origin_buf_id
+      and self._origin_buf_id ~= self.buf_id
+      and util.buffer_is_valid(self._origin_buf_id)
+      and vim.bo[self._origin_buf_id].filetype ~= 'fyler_finder'
+    then
+      target_buf = self._origin_buf_id
+    else
+      target_buf = vim.api.nvim_win_call(self.win_id, function() return vim.fn.bufnr('#') end)
+      if
+        target_buf == self.buf_id
+        or (util.buffer_is_valid(target_buf) and vim.bo[target_buf].filetype == 'fyler_finder')
+      then
+        target_buf = -1
+      end
+    end
+
+    if util.buffer_is_valid(target_buf) then
+      vim.api.nvim_win_set_buf(self.win_id, target_buf)
     else
       local scratch = vim.api.nvim_create_buf(false, true)
       vim.bo[scratch].bufhidden = 'wipe'
       vim.api.nvim_win_set_buf(self.win_id, scratch)
     end
 
+    self._origin_buf_id = nil
     pcall(vim.api.nvim_buf_delete, self.buf_id, { force = true })
   else
     pcall(vim.api.nvim_win_close, self.win_id, true)
@@ -630,6 +669,7 @@ function Finder:close()
   extensions.run_hook('finder_close_post', self)
 
   self.win_id = nil
+  self._origin_buf_id = nil
   self._refresh_count = nil
   self._pending_refresh = nil
 
@@ -831,14 +871,22 @@ function Finder:open()
 
   local win_config = util.window_get_config(self.opts)
   local origin_win_id = vim.api.nvim_get_current_win()
+  local origin_buf_id = vim.api.nvim_get_current_buf()
 
   local buf_name = H.buffer_name(self)
-  self.buf_id = vim.fn.bufnr('^' .. buf_name, '$')
+  self.buf_id = H.find_buffer_by_exact_name(buf_name)
 
   if not util.buffer_is_valid(self.buf_id) then
     self.buf_id = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_name(self.buf_id, buf_name)
   end
+
+  -- Remember origin buffer for `replace` close. `visit()` renames the
+  -- finder buffer via `nvim_buf_set_name`, which moves the old name into
+  -- `#` (unlisted ghost) and invalidates the alternate once the ghost is
+  -- deleted. Relying on `bufnr('#')` at close time would then fall back to
+  -- an empty scratch buffer instead of the origin.
+  if origin_buf_id ~= self.buf_id then self._origin_buf_id = origin_buf_id end
 
   if win_config then
     self.win_id = vim.api.nvim_open_win(self.buf_id, true, win_config)
@@ -1137,9 +1185,20 @@ function Finder:visit(args)
 
   if self.state.pseudo_root_path == args.path then return end
 
-  -- NOTE: We need to delete the old buffer because
-  -- renaming the buffer creates another buffer (don't know why?)
+  -- NOTE: `nvim_buf_set_name` (like `:file`) moves the old name into `#`
+  -- as an unlisted ghost buffer. Save the alternate now so it can be
+  -- restored after the ghost is deleted; otherwise `close()` for `replace`
+  -- loses the origin buffer and falls back to an empty scratch buffer.
   local old_buf_name = H.buffer_name(self)
+  local saved_alt_name = nil
+  if util.window_is_valid(self.win_id) then
+    local saved_alt_buf = vim.api.nvim_win_call(self.win_id, function() return vim.fn.bufnr('#') end)
+    if saved_alt_buf ~= -1 and saved_alt_buf ~= self.buf_id and util.buffer_is_valid(saved_alt_buf) then
+      local ok, name = pcall(vim.api.nvim_buf_get_name, saved_alt_buf)
+      if ok and name ~= '' then saved_alt_name = name end
+    end
+  end
+
   self.state:change_pseudo_root(args.path)
 
   if config.DATA.follow_root_dir then
@@ -1147,8 +1206,14 @@ function Finder:visit(args)
   end
   vim.api.nvim_buf_set_name(self.buf_id, H.buffer_name(self))
 
-  local old_buf_id = vim.fn.bufnr('^' .. old_buf_name .. '$')
-  if util.buffer_is_valid(old_buf_id) then vim.api.nvim_buf_delete(old_buf_id, { force = true }) end
+  local old_buf_id = H.find_buffer_by_exact_name(old_buf_name)
+  if old_buf_id ~= -1 and old_buf_id ~= self.buf_id and util.buffer_is_valid(old_buf_id) then
+    vim.api.nvim_buf_delete(old_buf_id, { force = true })
+  end
+
+  if saved_alt_name and util.window_is_valid(self.win_id) then
+    vim.api.nvim_win_call(self.win_id, function() pcall(vim.cmd, 'let @# = ' .. vim.fn.string(saved_alt_name)) end)
+  end
 
   self:refresh({ recursive = true })
 end

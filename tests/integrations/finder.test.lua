@@ -417,4 +417,71 @@ T['follow_current_file does not move cursor in unfocused windows'] = function()
   helper.expect.equality(n.lua_get('vim.api.nvim_win_get_cursor(_G.obs_win)[1]'), 1)
 end
 
+T['Visit close replace'] = helper.new_set()
+
+local count_fyler_bufs_lua = [[vim.tbl_count(vim.tbl_filter(function(b)
+  local ok, name = pcall(vim.api.nvim_buf_get_name, b)
+  return ok and name:match('^fyler%-') ~= nil
+end, vim.api.nvim_list_bufs()))]]
+
+T['Visit close replace']['visit cursor then close restores origin without scratch'] = function()
+  local tmpdir = helper.get_tmpdir('data', { 'sub/', 'sub/file', 'a-file' })
+  n.fwd_lua('require("fyler").setup')({})
+  local origin_file = helper.joinpath(tmpdir, 'a-file')
+  n.fwd_lua('vim.cmd.edit')(origin_file)
+  local origin_buf = n.lua_get('vim.api.nvim_get_current_buf()')
+  n.fwd_lua('require("fyler").open')({ kind = 'replace', root_path = tmpdir })
+  vim.uv.sleep(50)
+  n.type_keys('gg', '.')
+  vim.uv.sleep(50)
+  -- Regression for issue-366: rename in `visit()` must not clobber `#`
+  -- with the unlisted ghost holding the old `fyler-...` name.
+  helper.expect.equality(n.lua_get('vim.fn.bufnr("#")'), origin_buf)
+  helper.expect.equality(n.lua_get(count_fyler_bufs_lua), 1)
+  n.type_keys('q')
+  vim.uv.sleep(50)
+  helper.expect.equality(n.lua_get('vim.api.nvim_get_current_buf()'), origin_buf)
+  helper.expect.equality(n.lua_get(count_fyler_bufs_lua), 0)
+  local cur_name = n.lua_get('vim.api.nvim_buf_get_name(vim.api.nvim_get_current_buf())')
+  helper.expect.equality(cur_name ~= '', true)
+  helper.expect.equality(cur_name:match('^fyler%-') == nil, true)
+end
+
+T['Visit close replace']['visit parent then close restores origin'] = function()
+  local tmpdir = helper.get_tmpdir('data', { 'sub/', 'sub/file', 'a-file' })
+  n.fwd_lua('require("fyler").setup')({})
+  local origin_file = helper.joinpath(tmpdir, 'a-file')
+  n.fwd_lua('vim.cmd.edit')(origin_file)
+  local origin_buf = n.lua_get('vim.api.nvim_get_current_buf()')
+  n.fwd_lua('require("fyler").open')({ kind = 'replace', root_path = helper.joinpath(tmpdir, 'sub') })
+  vim.uv.sleep(50)
+  n.lua([[require('fyler.finder').instance_get_or_nil():visit({ parent = true })]])
+  vim.uv.sleep(50)
+  helper.expect.equality(n.lua_get('vim.fn.bufnr("#")'), origin_buf)
+  n.type_keys('q')
+  vim.uv.sleep(50)
+  helper.expect.equality(n.lua_get('vim.api.nvim_get_current_buf()'), origin_buf)
+  helper.expect.equality(n.lua_get(count_fyler_bufs_lua), 0)
+end
+
+T['Visit close replace']['double visit then close restores origin'] = function()
+  local tmpdir = helper.get_tmpdir('data', { 'sub/', 'sub/file', 'a-file' })
+  n.fwd_lua('require("fyler").setup')({})
+  local origin_file = helper.joinpath(tmpdir, 'a-file')
+  n.fwd_lua('vim.cmd.edit')(origin_file)
+  local origin_buf = n.lua_get('vim.api.nvim_get_current_buf()')
+  n.fwd_lua('require("fyler").open')({ kind = 'replace', root_path = tmpdir })
+  vim.uv.sleep(50)
+  local subdir = helper.joinpath(tmpdir, 'sub')
+  n.lua([[require('fyler.finder').instance_get_or_nil():visit({ path = ... })]], { subdir })
+  vim.uv.sleep(50)
+  n.lua([[require('fyler.finder').instance_get_or_nil():visit({ parent = true })]])
+  vim.uv.sleep(50)
+  helper.expect.equality(n.lua_get(count_fyler_bufs_lua), 1)
+  n.type_keys('q')
+  vim.uv.sleep(50)
+  helper.expect.equality(n.lua_get('vim.api.nvim_get_current_buf()'), origin_buf)
+  helper.expect.equality(n.lua_get(count_fyler_bufs_lua), 0)
+end
+
 return T
