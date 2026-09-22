@@ -156,7 +156,7 @@ function H.statuses_async(entries, force, cb)
   end)
 
   for root, _ in pairs(repos_to_fetch) do
-    vim.system({ 'git', '-C', root, 'status', '--porcelain', '-z' }, { text = true }, function(result)
+    vim.system({ 'git', '-C', root, 'status', '--porcelain', '--ignored', '-z' }, { text = true }, function(result)
       status_cache[root] = {}
       if result.code == 0 then H.parse_porcelain(result.stdout, root, status_cache[root]) end
       done()
