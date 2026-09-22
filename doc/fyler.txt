@@ -299,6 +299,12 @@ extensions to include and how to configure them.
     icon = 'vim_nerdfont'
   }
   {
+    -- Use a custom icon provider. It receives the item type, full path,
+    -- and directory expansion state, and returns icon text plus an
+    -- optional highlight group.
+    icon = function(fs_type, fs_path, state) return ' ', nil end
+  }
+  {
     -- Use a custom function as the window picker.
     -- The function should return a window id or nil.
     -- Falls back to the builtin picker when not set.
