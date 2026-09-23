@@ -17,7 +17,7 @@ function H.start_handle(buf_id, dir_path, on_event)
   local handle = uv.new_fs_event()
   if not handle then return end
 
-  local ok = handle:start(dir_path, { watch_entry = true }, function(err, filename, status)
+  local ok = handle:start(dir_path, {}, function(err, filename, status)
     if err then return end
     on_event(filename, status)
   end)
@@ -112,8 +112,8 @@ extensions.register({
         if not state.handles[dir_path] then
           local is_git_dir = dir_path:match('/%.git$')
           H.start_handle(buf_id, dir_path, function(filename, status)
-            if is_git_dir and filename and not (filename == 'index') then return end
-            if not is_git_dir and not (status and status.rename) then return end
+            if is_git_dir and filename and not (filename == 'index' or filename == 'index.lock') then return end
+            if not is_git_dir and not (status and (status.rename or status.change)) then return end
 
             if is_git_dir then
               state.pending_refresh = { force = true, recursive = true }
@@ -126,7 +126,11 @@ extensions.register({
             state.timer:start(cfg.debounce_ms, 0, function()
               vim.schedule(function()
                 if not watch_state[buf_id] then return end
+                if vim.bo[buf_id].modified then return end
+
                 local pending = state.pending_refresh
+                state.pending_refresh = nil
+
                 pcall(function() instance:refresh(pending) end)
               end)
             end)
