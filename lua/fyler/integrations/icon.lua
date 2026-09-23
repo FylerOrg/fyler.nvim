@@ -55,9 +55,10 @@ end
 ---@return string|nil
 ---@return string|nil
 M.get = function(fs_type, fs_path, state)
-  local integration_name = config.DATA.integrations.icon
-  if not (integration_name and H[integration_name]) then return end
-  return H[integration_name](fs_type, fs_path, state)
+  local provider = config.DATA.integrations.icon
+  if type(provider) == 'function' then return provider(fs_type, fs_path, state) end
+  if not (provider and H[provider]) then return end
+  return H[provider](fs_type, fs_path, state)
 end
 
 return M

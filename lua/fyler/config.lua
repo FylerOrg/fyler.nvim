@@ -49,7 +49,7 @@ local M = {}
 ---@field follow_current_file boolean
 ---@field follow_root_dir boolean
 ---@field hooks fyler.HooksConfig
----@field integrations table
+---@field integrations { icon?: string|fun(fs_type:string, fs_path:string, state:{expanded:boolean}|nil):string|nil, [string]: any }
 ---@field kind fyler.FinderWindowKind
 ---@field kind_presets table<string, fyler.KindPresetConfig>
 ---@field mappings table<string, table<string, fyler.Mapping>>
@@ -142,6 +142,12 @@ local M = {}
 ---   {
 ---     -- Use Nerd Font icons
 ---     icon = 'vim_nerdfont'
+---   }
+---   {
+---     -- Use a custom icon provider. It receives the item type, full path,
+---     -- and directory expansion state, and returns icon text plus an
+---     -- optional highlight group.
+---     icon = function(fs_type, fs_path, state) return ' ', nil end
 ---   }
 ---   {
 ---     -- Use a custom function as the window picker.

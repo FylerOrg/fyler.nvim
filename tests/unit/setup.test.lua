@@ -55,6 +55,16 @@ T['Respect custom configuration'] = function()
   expect_config('use_as_default_explorer', false)
 end
 
+T['Custom icon provider is used'] = function()
+  local actual = n.lua_get([[(function()
+    require('fyler').setup({
+      integrations = { icon = function() return '  ', 'FylerNormal' end },
+    })
+    return { require('fyler.integrations.icon').get('file', '/tmp/example.lua') }
+  end)()]])
+  eq(actual, { '  ', 'FylerNormal' })
+end
+
 T['Individual mapping with disable flag is preserved'] = function()
   n.fwd_lua('require("fyler").setup')({ mappings = { n = { ['q'] = { disabled = true } } } })
   expect_config('mappings.n["q"].disabled', true)
