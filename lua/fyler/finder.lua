@@ -713,11 +713,17 @@ function Finder:follow(args)
     self.state:toggle(accumulated, true)
   end
 
+  -- Remember how many mouse presses the finder window had seen when the follow
+  -- was requested. If the user clicks into the finder while the refresh is in
+  -- flight, the restore must not move the cursor away from the click.
+  local mouse_press_count = util.window_get_mouse_press_count(self.win_id)
+
   self:refresh({
     force = args.force,
     recursive = true,
     callback = function()
       if not util.window_is_valid(self.win_id) then return end
+      if util.window_get_mouse_press_count(self.win_id) ~= mouse_press_count then return end
       local id = state.store_path_id[libpath.to_key(target_path)]
       if not id then return end
       self._view.lnum = self._id_to_line[id] or 1

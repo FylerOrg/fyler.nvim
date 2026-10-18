@@ -417,6 +417,116 @@ T['follow_current_file does not move cursor in unfocused windows'] = function()
   helper.expect.equality(n.lua_get('vim.api.nvim_win_get_cursor(_G.obs_win)[1]'), 1)
 end
 
+T['follow_current_file does not override mouse click in finder window'] = function()
+  local tmpdir = helper.get_tmpdir('data', { 'dir/', 'dir/a-file', 'dir/b-file', 'dir/c-file' })
+  n.fwd_lua('require("fyler").setup')({ follow_current_file = true })
+  n.lua('vim.opt.mouse = "a"')
+  n.fwd_lua('vim.cmd.edit')(helper.joinpath(tmpdir, 'dir', 'a-file'))
+  n.fwd_lua('require("fyler").open')({ kind = 'split_left_most', root_path = tmpdir })
+  vim.uv.sleep(50)
+
+  -- Focus the editor and let the follow triggered by its BufEnter settle.
+  n.lua([[
+    local finder = require('fyler.finder')
+    local instance = assert(finder.instance_get_or_nil(), 'finder instance missing')
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+      if win ~= instance.win_id then vim.api.nvim_set_current_win(win) end
+    end
+  ]])
+  vim.uv.sleep(100)
+
+  -- Delay directory scans so the follow refresh is still in flight when the
+  -- mouse click lands in the finder window.
+  n.lua([[
+    local scheme = require('fyler.schemes.file')
+    local fs_scan_dir = scheme.fs_scan_dir
+    scheme.fs_scan_dir = function(path, callback) vim.defer_fn(function() fs_scan_dir(path, callback) end, 300) end
+  ]])
+
+  local target = helper.joinpath(tmpdir, 'dir', 'c-file')
+  local info = n.lua_get(
+    [[(function(target)
+    local finder = require('fyler.finder')
+    local instance = assert(finder.instance_get_or_nil(), 'finder instance missing')
+    instance:follow({ target_path = target, force = true })
+    return { win = instance.win_id, pos = vim.api.nvim_win_get_position(instance.win_id) }
+  end)(...)]],
+    { target }
+  )
+
+  -- Click the b-file line (third tree line), which differs from the followed
+  -- c-file line (fourth tree line).
+  n.api.nvim_input_mouse('left', 'press', '', 0, info.pos[1] + 2, info.pos[2] + 2)
+
+  -- Wait for the follow refresh to settle (including any queued refresh).
+  local settled = false
+  for _ = 1, 100 do
+    settled = n.lua_get([[(function()
+      local instance = require('fyler.finder').instance_get_or_nil()
+      return instance ~= nil and not instance._is_refreshing and next(instance._view) == nil
+    end)()]])
+    if settled then break end
+    vim.uv.sleep(20)
+  end
+  helper.expect.equality(settled, true)
+
+  helper.expect.equality(n.lua_get('vim.api.nvim_win_get_cursor(...)[1]', { info.win }), 3)
+end
+
+T['follow_current_file still follows when entering finder with keyboard'] = function()
+  local tmpdir = helper.get_tmpdir('data', { 'dir/', 'dir/a-file', 'dir/b-file', 'dir/c-file' })
+  n.fwd_lua('require("fyler").setup')({ follow_current_file = true })
+  n.fwd_lua('vim.cmd.edit')(helper.joinpath(tmpdir, 'dir', 'a-file'))
+  n.fwd_lua('require("fyler").open')({ kind = 'split_left_most', root_path = tmpdir })
+  vim.uv.sleep(50)
+
+  -- Focus the editor and let the follow triggered by its BufEnter settle.
+  n.lua([[
+    local finder = require('fyler.finder')
+    local instance = assert(finder.instance_get_or_nil(), 'finder instance missing')
+    for _, win in ipairs(vim.api.nvim_list_wins()) do
+      if win ~= instance.win_id then vim.api.nvim_set_current_win(win) end
+    end
+  ]])
+  vim.uv.sleep(100)
+
+  -- Delay directory scans so the follow refresh is still in flight when the
+  -- keyboard jump into the finder window happens.
+  n.lua([[
+    local scheme = require('fyler.schemes.file')
+    local fs_scan_dir = scheme.fs_scan_dir
+    scheme.fs_scan_dir = function(path, callback) vim.defer_fn(function() fs_scan_dir(path, callback) end, 300) end
+  ]])
+
+  local target = helper.joinpath(tmpdir, 'dir', 'c-file')
+  local win_id = n.lua_get(
+    [[(function(target)
+    local finder = require('fyler.finder')
+    local instance = assert(finder.instance_get_or_nil(), 'finder instance missing')
+    instance:follow({ target_path = target, force = true })
+    return instance.win_id
+  end)(...)]],
+    { target }
+  )
+
+  -- Jump into the finder with <C-w>h instead of clicking.
+  n.type_keys('<C-w>h')
+
+  -- Wait for the follow refresh to settle (including any queued refresh).
+  local settled = false
+  for _ = 1, 100 do
+    settled = n.lua_get([[(function()
+      local instance = require('fyler.finder').instance_get_or_nil()
+      return instance ~= nil and not instance._is_refreshing and next(instance._view) == nil
+    end)()]])
+    if settled then break end
+    vim.uv.sleep(20)
+  end
+  helper.expect.equality(settled, true)
+
+  helper.expect.equality(n.lua_get('vim.api.nvim_win_get_cursor(...)[1]', { win_id }), 4)
+end
+
 T['Visit close replace'] = helper.new_set()
 
 local count_fyler_bufs_lua = [[vim.tbl_count(vim.tbl_filter(function(b)
