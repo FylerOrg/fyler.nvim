@@ -417,6 +417,64 @@ T['follow_current_file does not move cursor in unfocused windows'] = function()
   helper.expect.equality(n.lua_get('vim.api.nvim_win_get_cursor(_G.obs_win)[1]'), 1)
 end
 
+T['follow_current_file does not override mouse click during in-flight follow from BufEnter'] = function()
+  local tmpdir = helper.get_tmpdir('data', { 'dir/', 'dir/a-file', 'dir/b-file', 'sub/', 'sub/c-file' })
+  n.fwd_lua('require("fyler").setup')({ follow_current_file = true })
+  n.lua('vim.opt.mouse = "a"')
+  n.fwd_lua('vim.cmd.edit')(helper.joinpath(tmpdir, 'dir', 'a-file'))
+  n.fwd_lua('require("fyler").open')({ kind = 'split_left_most', root_path = tmpdir })
+  for _ = 1, 200 do
+    local ready = n.lua_get([[(function()
+      local instance = require('fyler.finder').instance_get_or_nil()
+      return instance ~= nil and not instance._is_refreshing and vim.api.nvim_buf_line_count(instance.buf_id) >= 3
+    end)()]])
+    if ready then break end
+    vim.uv.sleep(20)
+  end
+
+  -- Tree shows dir/ expanded (a-file, b-file) and sub/ collapsed. Return to the editor.
+  n.type_keys('<C-w>p')
+  helper.expect.no_equality(n.lua_get('vim.bo.filetype'), 'fyler_finder')
+  vim.uv.sleep(100)
+
+  -- Slow the directory scan so the follow refresh is still in flight after the click.
+  n.lua([[
+    local scheme = require('fyler.schemes.file')
+    local fs_scan_dir = scheme.fs_scan_dir
+    scheme.fs_scan_dir = function(path, callback) vim.defer_fn(function() fs_scan_dir(path, callback) end, 300) end
+  ]])
+
+  -- Enter sub/c-file in the editor, the same way a user does. BufEnter starts follow,
+  -- which must scan the unloaded sub/ directory, so the refresh stays in flight.
+  local info = n.lua_get(
+    [[(function(target)
+    vim.cmd.edit(target)
+    local finder = require('fyler.finder')
+    local instance = assert(finder.instance_get_or_nil(), 'finder instance missing')
+    return { win = instance.win_id, pos = vim.api.nvim_win_get_position(instance.win_id) }
+  end)(...)]],
+    { helper.joinpath(tmpdir, 'sub', 'c-file') }
+  )
+
+  -- Click the b-file row (third tree line) while the follow is still scanning.
+  n.api.nvim_input_mouse('left', 'press', '', 0, info.pos[1] + 2, info.pos[2] + 2)
+
+  helper.expect.equality(n.lua_get('require("fyler.finder").instance_get_or_nil()._is_refreshing'), true)
+
+  local settled = false
+  for _ = 1, 100 do
+    settled = n.lua_get([[(function()
+      local instance = require('fyler.finder').instance_get_or_nil()
+      return instance ~= nil and not instance._is_refreshing and next(instance._view) == nil
+    end)()]])
+    if settled then break end
+    vim.uv.sleep(20)
+  end
+  helper.expect.equality(settled, true)
+
+  helper.expect.equality(n.lua_get('vim.api.nvim_win_get_cursor(...)[1]', { info.win }), 3)
+end
+
 T['Visit close replace'] = helper.new_set()
 
 local count_fyler_bufs_lua = [[vim.tbl_count(vim.tbl_filter(function(b)
