@@ -20,6 +20,7 @@ local integration_window_picker = Fyler.import('fyler.integrations.window_picker
 ---@field private _refresh_count integer|nil
 ---@field private _is_refreshing boolean
 ---@field private _pending_refresh table|nil
+---@field private _follow_token table|nil
 ---@field private _current_refresh_args table|nil
 ---@field private _id_to_line table|nil
 ---@field private _origin_buf_id integer|nil
@@ -672,6 +673,7 @@ function Finder:close()
   self._origin_buf_id = nil
   self._refresh_count = nil
   self._pending_refresh = nil
+  self._follow_token = nil
 
   if #vim.fn.win_findbuf(self.buf_id) == 0 then pcall(vim.api.nvim_buf_delete, self.buf_id, { force = true }) end
 
@@ -679,6 +681,8 @@ function Finder:close()
     vim.cmd.tcd({ args = { vim.fn.fnameescape(vim.fn.getcwd(-1, -1)) }, mods = { silent = true } })
   end
 end
+
+function Finder:cancel_follow() self._follow_token = nil end
 
 ---@param args { target_path: string|nil, force: boolean|nil }|nil
 function Finder:follow(args)
@@ -713,11 +717,15 @@ function Finder:follow(args)
     self.state:toggle(accumulated, true)
   end
 
+  local token = {}
+  self._follow_token = token
+
   self:refresh({
     force = args.force,
     recursive = true,
     callback = function()
       if not util.window_is_valid(self.win_id) then return end
+      if self._follow_token ~= token then return end
       local id = state.store_path_id[libpath.to_key(target_path)]
       if not id then return end
       self._view.lnum = self._id_to_line[id] or 1
@@ -1212,7 +1220,9 @@ function Finder:visit(args)
   end
 
   if saved_alt_name and util.window_is_valid(self.win_id) then
-    vim.api.nvim_win_call(self.win_id, function() pcall(vim.cmd, 'let @# = ' .. vim.fn.string(saved_alt_name)) end)
+    vim.api.nvim_win_call(self.win_id, function()
+      pcall(function() vim.cmd('let @# = ' .. vim.fn.string(saved_alt_name)) end)
+    end)
   end
 
   self:refresh({ recursive = true })
@@ -1241,6 +1251,16 @@ M.instance_get_or_nil = function(tab_id)
 
   return nil
 end
+
+H.cancel_follow_on_mouse = function(key, typed)
+  local keys = #typed > 0 and typed or key
+  if keys:byte(1) ~= 0x80 or not vim.fn.keytrans(keys):find('Mouse', 1, true) then return end
+
+  local instance = M.instance_get_or_nil()
+  if instance and vim.fn.getmousepos().winid == instance.win_id then instance:cancel_follow() end
+end
+
+vim.on_key(H.cancel_follow_on_mouse, vim.api.nvim_create_namespace('FylerFinderMouse'))
 
 ---@private
 ---@param instance fyler.Finder
