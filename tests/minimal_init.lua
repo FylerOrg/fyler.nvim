@@ -80,12 +80,9 @@ for _, name in ipairs({
     local cb = select(argc, ...)
     if type(cb) ~= 'function' then return orig(...) end
 
-    local res = { n = 0 }
-    local function pack(...)
-      res = { n = select('#', ...), ... }
-    end
-    pack(orig(unpack({ ... }, 1, argc - 1)))
+    local function pack(...) return select('#', ...), { ... } end
+    local n, res = pack(orig(unpack({ ... }, 1, argc - 1)))
     if res[1] == nil and res[2] ~= nil then return cb(res[2]) end
-    return cb(nil, unpack(res, 1, res.n))
+    return cb(nil, unpack(res, 1, n))
   end
 end
