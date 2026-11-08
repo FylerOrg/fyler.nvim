@@ -56,3 +56,33 @@ for o, v in pairs({
 }) do
   vim.opt[o] = v
 end
+
+-- Run the libuv fs calls that fyler's file scheme wraps synchronously, so finder renders and
+-- mutations are finished by the time a test call returns and tests do not depend on async timing.
+-- The scheme wraps these functions when it is first required, so this must run before that.
+for _, name in ipairs({
+  'fs_close',
+  'fs_closedir',
+  'fs_copyfile',
+  'fs_mkdir',
+  'fs_open',
+  'fs_opendir',
+  'fs_readdir',
+  'fs_realpath',
+  'fs_rename',
+  'fs_rmdir',
+  'fs_stat',
+  'fs_unlink',
+}) do
+  local orig = vim.uv[name]
+  vim.uv[name] = function(...)
+    local argc = select('#', ...)
+    local cb = select(argc, ...)
+    if type(cb) ~= 'function' then return orig(...) end
+
+    local function pack(...) return select('#', ...), { ... } end
+    local n, res = pack(orig(unpack({ ... }, 1, argc - 1)))
+    if res[1] == nil and res[2] ~= nil then return cb(res[2]) end
+    return cb(nil, unpack(res, 1, n))
+  end
+end

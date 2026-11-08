@@ -55,7 +55,20 @@ function util.new_child_neovim()
     return function(...) return child.lua_get(lua_cmd, { ... }) end
   end
 
+  -- Callbacks queued with vim.schedule run in order, so once a marker queued after them has run, they
+  -- have all run. Two rounds also cover callbacks that schedule another one.
+  function child.flush()
+    for _ = 1, 2 do
+      child.lua_get([[(function()
+        local done = false
+        vim.schedule(function() done = true end)
+        return vim.wait(1000, function() return done end)
+      end)()]])
+    end
+  end
+
   function child.expect_screenshot(opts, path)
+    child.flush()
     opts = opts or {}
     local screenshot_opts = { redraw = opts.redraw }
     opts.redraw = nil
