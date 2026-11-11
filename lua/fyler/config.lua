@@ -97,14 +97,19 @@ local M = {}
 ---   {
 ---     -- Enable git extension
 ---     git = { enabled = true }
----     -- Enable git extension with right aligned icons
----     git = { enabled = true, inline = false }
+---     -- Align Git icons in a column after the longest visible line.
+---     git = { enabled = true, inline = false, align = 'col' }
+---     -- Align Git icons at the right edge of the window.
+---     git = { enabled = true, inline = false, align = 'right' }
 ---     -- Enable trash extension
 ---     trash = { enabled = true }
 ---     -- Enable watcher extension
 ---     watcher = { enabled = true }
 ---   }
 --- <
+---
+---   Git icons use `inline = true` and `align = 'col'` by default.
+---   `align` accepts `'col'` or `'right'` and applies only when `inline = false`.
 ---
 --- - `hooks` is a table value which determine custom event hooks.
 ---   Each hook is an optional function called when the corresponding event
