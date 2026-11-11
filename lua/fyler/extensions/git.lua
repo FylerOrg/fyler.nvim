@@ -190,7 +190,8 @@ end
 extensions.register({
   name = 'git',
   setup = function(opts, config)
-    config.extensions.git = vim.tbl_deep_extend('force', { icons = vim.deepcopy(default_icons), inline = true }, opts)
+    config.extensions.git =
+      vim.tbl_deep_extend('force', { icons = vim.deepcopy(default_icons), inline = true, align = 'col' }, opts)
   end,
   hooks = {
     finder_refresh_post = function(inst, visible, hl_ns, lines, args)
@@ -199,8 +200,8 @@ extensions.register({
 
       refresh_count = refresh_count + 1
       local current_count = refresh_count
+      local gc = not cfg.inline and cfg.align == 'col' and H.git_col(lines) or nil
 
-      local gc = H.git_col(lines)
       local function apply(i, item, stat)
         local icon, hl = H.get_icon(stat, cfg.icons)
         if not hl then return end
@@ -215,14 +216,12 @@ extensions.register({
               { virt_text = { { icon, hl } }, hl_mode = 'combine' }
             )
           else
-            pcall(
-              vim.api.nvim_buf_set_extmark,
-              inst.buf_id,
-              hl_ns,
-              i - 1,
-              0,
-              { virt_text = { { icon, hl } }, virt_text_win_col = gc, hl_mode = 'combine' }
-            )
+            pcall(vim.api.nvim_buf_set_extmark, inst.buf_id, hl_ns, i - 1, 0, {
+              virt_text = { { icon, hl } },
+              virt_text_pos = cfg.align == 'right' and 'right_align' or nil,
+              virt_text_win_col = gc,
+              hl_mode = 'combine',
+            })
           end
         end
         pcall(
