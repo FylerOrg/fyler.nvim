@@ -542,4 +542,31 @@ T['Visit close replace']['double visit then close restores origin'] = function()
   helper.expect.equality(n.lua_get(count_fyler_bufs_lua), 0)
 end
 
+T['can open a file in the prior window when closing the finder'] = function()
+  local tmpdir = helper.get_tmpdir('data', { 'a-file' })
+  n.set_size(12, 60)
+
+  n.fwd_lua('require("fyler").setup')({
+    kind = 'split_left_most',
+    kind_presets = {
+      split_left_most = {
+        mappings = { n = { ['<CR>'] = { action = 'select', args = { close = true, pick = false } } } },
+      },
+    },
+  })
+
+  -- Two windows, with the cursor in the right one when the finder is opened.
+  n.cmd('vsplit')
+  n.cmd('wincmd l')
+  local prior_win = n.lua_get('vim.api.nvim_get_current_win()')
+
+  n.fwd_lua('require("fyler").open')({ root_path = tmpdir })
+  vim.uv.sleep(20)
+  n.type_keys('<CR>')
+  vim.uv.sleep(20)
+
+  helper.expect.equality(n.lua_get('vim.api.nvim_get_current_win()'), prior_win)
+  helper.expect.match(n.lua_get('vim.api.nvim_buf_get_name(0)'), 'a%-file$')
+end
+
 return T
