@@ -903,6 +903,10 @@ function Finder:open()
     vim.api.nvim_win_set_buf(self.win_id, self.buf_id)
   end
 
+  -- `WinEnter` for the new window fires before its buffer is set, so prior
+  -- window tracking can point at the finder window. Restore the origin.
+  util.window_set_prior(vim.api.nvim_get_current_tabpage(), origin_win_id)
+
   vim.t.fyler_origin_win_id = origin_win_id
 
   util.window_set_option(self.win_id, 'cursorline', false)
@@ -1096,12 +1100,12 @@ function Finder:select(args)
     end
 
     local should_close = get_should_close()
+    -- Closing the finder moves the cursor to another window and `WinEnter`
+    -- updates the prior window, so remember it before closing.
+    local prior_win_id = should_close and util.window_get_prior(vim.api.nvim_get_current_tabpage()) or nil
     if should_close then self:close() end
 
-    if not pick_succeeded then
-      local should_goto_suitable_window = not (should_close or self.opts.kind == 'replace')
-      if should_goto_suitable_window then M.window_goto_suitable(self, os_path) end
-    end
+    if not pick_succeeded and self.opts.kind ~= 'replace' then M.window_goto_suitable(self, os_path, prior_win_id) end
 
     local splitright = vim.o.splitright
     local splitbelow = vim.o.splitbelow
@@ -1280,7 +1284,8 @@ end
 
 ---@param instance fyler.Finder
 ---@param path string
-M.window_goto_suitable = function(instance, path)
+---@param prior_win_id integer|nil
+M.window_goto_suitable = function(instance, path, prior_win_id)
   local is_popup = function(winid)
     local win_config = vim.api.nvim_win_get_config(winid)
     return win_config and (#win_config.relative > 0 or win_config.external)
@@ -1302,7 +1307,7 @@ M.window_goto_suitable = function(instance, path)
   end
 
   local tab = vim.api.nvim_get_current_tabpage()
-  local prior_win_id = util.window_get_prior(tab)
+  prior_win_id = prior_win_id or util.window_get_prior(tab)
   if prior_win_id and vim.api.nvim_win_is_valid(prior_win_id) and is_suitable(prior_win_id) then
     vim.api.nvim_set_current_win(prior_win_id)
     return
