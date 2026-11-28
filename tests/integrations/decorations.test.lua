@@ -256,6 +256,59 @@ T['uses display width and visible text for column positioning'] = function()
   eq(columns[1][4].virt_text_win_col, 5)
 end
 
+T['does nothing when decorations are disabled'] = function()
+  local tmpdir = helper.get_tmpdir('decorations-data', { 'a-file' })
+  setup_sources({ 'alpha' }, { decorations = { enabled = false, area = 'column_start' } })
+  open(tmpdir)
+
+  eq(#get_marks(), 0)
+end
+
+T['passes the resolved area to providers'] = function()
+  local tmpdir = helper.get_tmpdir('decorations-data', { 'a-file' })
+  n.lua_get([[(function()
+    _G.fyler_test_resolved_area = {}
+    local extensions = require('fyler.extensions')
+    extensions.register({
+      name = 'alpha',
+      decorations = {
+        get_area = function() return 'column' end,
+        provide = function(ctx)
+          _G.fyler_test_resolved_area.alpha = ctx.area
+          local cells = {}
+          for _, item in ipairs(ctx.entries) do
+            cells[item.id] = { chunks = { { 'A', 'Normal' } } }
+          end
+          return cells
+        end,
+      },
+    })
+    extensions.register({
+      name = 'beta',
+      decorations = {
+        provide = function(ctx)
+          _G.fyler_test_resolved_area.beta = ctx.area
+          local cells = {}
+          for _, item in ipairs(ctx.entries) do
+            cells[item.id] = { chunks = { { 'B', 'Normal' } } }
+          end
+          return cells
+        end,
+      },
+    })
+    require('fyler').setup({
+      use_as_default_explorer = false,
+      extensions = { alpha = { enabled = true }, beta = { enabled = true } },
+      ui = { decorations = { area = 'inline' } },
+    })
+  end)()]])
+  open(tmpdir)
+
+  local resolved = n.lua_get('_G.fyler_test_resolved_area')
+  eq(resolved.alpha, 'column')
+  eq(resolved.beta, 'inline')
+end
+
 T['supports the legacy git inline option'] = function()
   local actual = n.lua_get([[(function()
     require('fyler').setup({
