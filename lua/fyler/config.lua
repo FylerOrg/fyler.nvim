@@ -18,7 +18,12 @@ local M = {}
 ---@field patterns string[]|nil
 ---@field switches string[]|nil
 
+---@class fyler.DecorationsConfig
+---@field enabled boolean|nil
+---@field area 'inline'|'column_start'|'column_end'|nil
+
 ---@class fyler.UiConfig
+---@field decorations fyler.DecorationsConfig|nil
 ---@field hidden_items fyler.HiddenItemsConfig|nil
 ---@field indent_guides boolean|nil
 
@@ -49,7 +54,7 @@ local M = {}
 ---@field follow_current_file boolean
 ---@field follow_root_dir boolean
 ---@field hooks fyler.HooksConfig
----@field integrations { icon?: string|fun(fs_type:string, fs_path:string, state:{expanded:boolean}|nil):string|nil, [string]: any }
+---@field integrations { [string]: any, icon?: string|fun(fs_type:string, fs_path:string, state:{expanded:boolean}|nil):string|nil }
 ---@field kind fyler.FinderWindowKind
 ---@field kind_presets table<string, fyler.KindPresetConfig>
 ---@field mappings table<string, table<string, fyler.Mapping>>
@@ -97,7 +102,8 @@ local M = {}
 ---   {
 ---     -- Enable git extension
 ---     git = { enabled = true }
----     -- Enable git extension with right aligned icons
+---     -- Enable git extension. Decoration placement follows
+---     -- `ui.decorations.area` (the legacy `inline` option is also supported).
 ---     git = { enabled = true, inline = false }
 ---     -- Enable trash extension
 ---     trash = { enabled = true }
@@ -197,14 +203,24 @@ local M = {}
 --- <
 ---
 --- - `ui` is a table value which determine the UI behaviour.
----   It is the combination of `hidden_items` and `indent_guides` where
----   `hidden_items` further has `always_hidden`, `always_visible`,
----   `patterns`, and `switches` list of patterns. While `indent_guides`
----   is a boolean value which shows indentation guides in the buffer.
+---   It is the combination of `decorations`, `hidden_items` and `indent_guides`.
+---   `decorations` configures extension-provided text and icons. `hidden_items`
+---   has `always_hidden`, `always_visible`, `patterns`, and `switches` lists of
+---   patterns. `indent_guides` shows indentation guides in the buffer.
+---
+---   Decoration sources use the top-level `area` unless the extension provides
+---   its own. Sources are rendered in lexicographical order. Inline decorations
+---   are placed directly after entry names. Column decorations are split into
+---   independently calculated named slots, laid out either right after the tree
+---   (`column_start`) or at the window's right edge (`column_end`). If the full
+---   column group does not fit, no column decorations are shown.
 ---   for example:
 ---
 --- >lua
 ---   {
+---     decorations = {
+---       area = 'column_end',
+---     },
 ---     hidden_items = {
 ---       -- Toggleable pre-defined switches (e.g. dotfiles)
 ---       switches = { 'dotfiles' },
@@ -359,6 +375,11 @@ local default_config = {
   },
   -- UI configuration
   ui = {
+    -- Shared inline and column rendering for extension decorations
+    decorations = {
+      enabled = true,
+      area = 'inline',
+    },
     hidden_items = {
       -- Toggleable pre-defined switches (e.g. 'dotfiles' to hide files).
       switches = { 'dotfiles' },

@@ -54,5 +54,6 @@ for o, v in pairs({
   tabline = '%!v:lua.custom_tabline()',
   writebackup = false,
 }) do
+  ---@diagnostic disable-next-line: assign-type-mismatch
   vim.opt[o] = v
 end

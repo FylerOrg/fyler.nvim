@@ -47,6 +47,7 @@ T['Creates default configuration'] = function()
   expect_config('ui.hidden_items.always_visible', {})
   expect_config('ui.hidden_items.patterns', {})
   expect_config('ui.hidden_items.switches', { 'dotfiles' })
+  expect_config('ui.decorations.area', 'inline')
   expect_config('use_as_default_explorer', true)
 end
 

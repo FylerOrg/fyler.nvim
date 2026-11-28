@@ -1,4 +1,5 @@
 local config = Fyler.import('fyler.config')
+local decorations = Fyler.import('fyler.decorations')
 local extensions = Fyler.import('fyler.extensions')
 local integration_icon = Fyler.import('fyler.integrations.icon')
 local input = Fyler.import('fyler.input')
@@ -1054,6 +1055,7 @@ function Finder:refresh(args)
 
       if args.callback then args.callback() end
 
+      decorations.refresh(self, visible, lines, args)
       extensions.run_hook('finder_refresh_post', self, visible, hl_ns, lines, args)
 
       H.finish_refresh(self)
