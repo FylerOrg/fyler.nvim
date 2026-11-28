@@ -29,7 +29,6 @@ local default_icons = {
   ['!!'] = { icon = '.', hl = 'FylerGitIgnored' },
 }
 local default_highlights_tbl
-local refresh_count = 0
 local status_cache = {}
 local H = {}
 
@@ -164,14 +163,6 @@ function H.statuses_async(entries, force, cb)
   end
 end
 
-function H.git_col(lines)
-  local col = 0
-  for _, line in ipairs(lines) do
-    col = math.max(col, vim.fn.strdisplaywidth(line))
-  end
-  return col + 1
-end
-
 function H.get_default_highlights()
   if default_highlights_tbl then return default_highlights_tbl end
 
@@ -190,61 +181,36 @@ end
 extensions.register({
   name = 'git',
   setup = function(opts, config)
-    config.extensions.git = vim.tbl_deep_extend('force', { icons = vim.deepcopy(default_icons), inline = true }, opts)
+    config.extensions.git = vim.tbl_deep_extend('force', { icons = vim.deepcopy(default_icons) }, opts)
   end,
-  hooks = {
-    finder_refresh_post = function(inst, visible, hl_ns, lines, args)
+  decorations = {
+    -- Backward compatibility for `extensions.git.inline`. Without it,
+    -- placement follows `ui.decorations.area`.
+    get_area = function(cfg)
+      if cfg.inline ~= nil then return cfg.inline and 'inline' or 'column' end
+      return nil
+    end,
+    provide = function(ctx, emit)
       local cfg = require('fyler.config').DATA.extensions.git
       if not cfg.enabled then return end
 
-      refresh_count = refresh_count + 1
-      local current_count = refresh_count
+      H.statuses_async(ctx.entries, ctx.args.force, function(statuses)
+        H.propagate_to_parents(statuses)
+        H.store_known_roots()
 
-      local gc = H.git_col(lines)
-      local function apply(i, item, stat)
-        local icon, hl = H.get_icon(stat, cfg.icons)
-        if not hl then return end
-        if icon then
-          if cfg.inline then
-            pcall(
-              vim.api.nvim_buf_set_extmark,
-              inst.buf_id,
-              hl_ns,
-              i - 1,
-              item._name_col + #item.name,
-              { virt_text = { { icon, hl } }, hl_mode = 'combine' }
-            )
-          else
-            pcall(
-              vim.api.nvim_buf_set_extmark,
-              inst.buf_id,
-              hl_ns,
-              i - 1,
-              0,
-              { virt_text = { { icon, hl } }, virt_text_win_col = gc, hl_mode = 'combine' }
-            )
+        local cells = {}
+        for _, item in ipairs(ctx.entries) do
+          local stat = statuses[item.path]
+          if stat then
+            local icon, hl = H.get_icon(stat, cfg.icons)
+            if hl then cells[item.id] = { chunks = icon and { { icon, hl } } or {}, entry_hl = hl } end
           end
         end
-        pcall(
-          vim.api.nvim_buf_set_extmark,
-          inst.buf_id,
-          hl_ns,
-          i - 1,
-          item._name_col,
-          { hl_group = hl, end_line = i - 1, end_col = item._name_col + #item.name, hl_mode = 'combine' }
-        )
-      end
-      H.statuses_async(visible, args and args.force, function(statuses)
-        if current_count == refresh_count then
-          H.propagate_to_parents(statuses)
-          H.store_known_roots()
-          for i, item in ipairs(visible) do
-            local stat = statuses[item.path]
-            if stat then apply(i, item, stat) end
-          end
-        end
+        emit(cells)
       end)
     end,
+  },
+  hooks = {
     highlights_post = function()
       for name, hl in pairs(H.get_default_highlights()) do
         hl.default = true

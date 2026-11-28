@@ -102,6 +102,12 @@ H.setup_autocmds = function()
   -- Ensure highlight groups follow the current theme.
   au('ColorScheme', '*', H.setup_highlights, 'Ensure colors')
 
+  -- Window-relative decoration alignment needs fresh geometry after resizing.
+  au('WinResized', '*', function()
+    local instance = finder.instance_get_or_nil()
+    if instance then Fyler.import('fyler.decorations').relayout(instance) end
+  end, 'Realign finder decorations')
+
   -- Tracking prior window which could have many use-cases but currently
   -- using it for find and goto a suitable window.
   au('WinEnter', '*', function()

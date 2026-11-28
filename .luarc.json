@@ -3,6 +3,7 @@
   "diagnostics.disable": ["redefined-local"],
   "diagnostics.globals": ["vim"],
   "workspace.checkThirdParty": false,
+  "workspace.library": ["${env:VIMRUNTIME}/lua"],
   "runtime.version": "LuaJIT",
   "Lua.runtime.special": { "Fyler.import": "require" }
 }

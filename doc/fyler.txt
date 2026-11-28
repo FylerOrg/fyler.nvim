@@ -206,6 +206,11 @@ CONFIGURATION ~
     },
     -- UI configuration
     ui = {
+      -- Shared inline and column rendering for extension decorations
+      decorations = {
+        enabled = true,
+        area = 'inline',
+      },
       hidden_items = {
         -- Toggleable pre-defined switches (e.g. 'dotfiles' to hide files).
         switches = { 'dotfiles' },
@@ -252,7 +257,8 @@ extensions to include and how to configure them.
   {
     -- Enable git extension
     git = { enabled = true }
-    -- Enable git extension with right aligned icons
+    -- Enable git extension. Decoration placement follows
+    -- `ui.decorations.area` (the legacy `inline` option is also supported).
     git = { enabled = true, inline = false }
     -- Enable trash extension
     trash = { enabled = true }
@@ -352,14 +358,24 @@ apply. Format for defining a mapping is as follows:
 <
 
 - `ui` is a table value which determine the UI behaviour.
-  It is the combination of `hidden_items` and `indent_guides` where
-  `hidden_items` further has `always_hidden`, `always_visible`,
-  `patterns`, and `switches` list of patterns. While `indent_guides`
-  is a boolean value which shows indentation guides in the buffer.
+  It is the combination of `decorations`, `hidden_items` and `indent_guides`.
+  `decorations` configures extension-provided text and icons. `hidden_items`
+  has `always_hidden`, `always_visible`, `patterns`, and `switches` lists of
+  patterns. `indent_guides` shows indentation guides in the buffer.
+
+  Decoration sources use the top-level `area` unless the extension provides
+  its own. Sources are rendered in lexicographical order. Inline decorations
+  are placed directly after entry names. Column decorations are split into
+  independently calculated named slots, laid out either right after the tree
+  (`column_start`) or at the window's right edge (`column_end`). If the full
+  column group does not fit, no column decorations are shown.
   for example:
 
 >lua
   {
+    decorations = {
+      area = 'column_end',
+    },
     hidden_items = {
       -- Toggleable pre-defined switches (e.g. dotfiles)
       switches = { 'dotfiles' },
@@ -377,5 +393,43 @@ apply. Format for defining a mapping is as follows:
 
 - `use_as_default_explorer` is a boolean value which determine whether
 to use finder as the default file explorer.
+
+------------------------------------------------------------------------------
+                                                             *fyler.decorations*
+EXTENSION DECORATIONS ~
+
+Extensions can contribute text and icons without managing buffer geometry.
+Register a decoration provider next to other extension fields:
+
+>lua
+  extensions.register({
+    name = 'example',
+    decorations = {
+      provide = function(ctx, emit)
+        local cells = {}
+        for _, entry in ipairs(ctx.entries) do
+          cells[entry.id] = {
+            chunks = { { '*', 'FylerGitModified' } },
+            -- Optional highlight over the entry name.
+            entry_hl = 'FylerGitModified',
+          }
+        end
+        return cells
+      end,
+    },
+  })
+<
+
+`ctx.area` resolves to `inline` or `column` from `ui.decorations` or the
+extension's `get_area`; use it when content differs by area. Providers may
+return cells synchronously or call `emit(cells)` asynchronously. `emit` may
+also be called multiple times.
+Results are keyed by `entry.id`. Async emissions are discarded when the
+finder refreshes, closes, or its buffer changes.
+
+Column providers receive an independent slot. Slot widths and ordering are
+managed centrally. Inline fragments are joined with a fixed gap and
+single-space separator. Highlight ranges over entry names are independent of
+placement.
 
  vim:tw=78:ts=8:noet:ft=help:norl:

@@ -78,7 +78,7 @@ end
 ---@return integer|nil
 M.get_selected_window = function(filter)
   ---@cast filter fun(win_id: integer, buf_id: integer): boolean
-  filter = vim.F.if_nil(filter, function(_, buf_id) return not vim.bo[buf_id].filetype:find('^fyler') end)
+  filter = filter or function(_, buf_id) return not vim.bo[buf_id].filetype:find('^fyler') end
 
   local char_to_win_id = {}
   local chars = 'asdfghjkl'
